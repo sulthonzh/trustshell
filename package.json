@@ -9,8 +9,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/index.ts",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "node --test test/*.test.ts",
+    "test:watch": "node --test --watch test/*.test.ts",
     "lint": "eslint src --ext .ts",
     "start": "node dist/index.js"
   },
