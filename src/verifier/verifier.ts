@@ -1,8 +1,8 @@
-import { executeCode } from '../utils/executor';
-import { analyzeCode } from '../analyzer/analyzer';
-import { runTests } from '../tester/tester';
-import { checkSecurity } from '../security/security';
-import { logger } from '../utils/logger';
+import { executeCode } from '../utils/executor.js';
+import { analyzeCode } from '../analyzer/analyzer.js';
+import { runTests } from '../tester/tester.js';
+import { checkSecurity } from '../security/security.js';
+import { logger } from '../utils/logger.js';
 
 export interface VerificationConfig {
   depth: 'basic' | 'comprehensive' | 'deep';
@@ -69,17 +69,17 @@ export interface VerificationResult {
 }
 
 export async function verifyCode(
-  filePath: string, 
+  filePath: string,
+  language: string,
   config: VerificationConfig
 ): Promise<VerificationResult> {
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
   
-  logger.info(`Starting verification for ${filePath} with depth: ${config.depth}`);
-  
-  // Detect language from file extension
-  const language = detectLanguage(filePath);
-  logger.debug(`Detected language: ${language}`);
+  // Use provided language or detect from file extension
+  const detectedLanguage = language || detectLanguage(filePath);
+  logger.info(`Starting verification for ${filePath} (${detectedLanguage}) with depth: ${config.depth}`);
+  logger.debug(`Using language: ${detectedLanguage}`);
   
   // Initialize result
   const result: VerificationResult = {
@@ -104,7 +104,7 @@ export async function verifyCode(
     recommendations: [],
     metadata: {
       file: filePath,
-      language,
+      language: detectedLanguage,
       timestamp,
       verificationDepth: config.depth,
       ...(config.aiSource && { aiSource: config.aiSource })
@@ -114,7 +114,7 @@ export async function verifyCode(
   try {
     // 1. Code Analysis
     logger.debug('Running code analysis...');
-    const analysis = await analyzeCode(filePath, language, config);
+    const analysis = await analyzeCode(filePath, detectedLanguage, config);
     result.findings.codeQuality = analysis.codeQuality;
     if (analysis.functionalTests) {
       result.findings.functionalTests = analysis.functionalTests;
@@ -126,7 +126,7 @@ export async function verifyCode(
     // 2. Functional Testing
     if (config.depth !== 'basic') {
       logger.debug('Running functional tests...');
-      const testResults = await runTests(filePath, language, config);
+      const testResults = await runTests(filePath, detectedLanguage, config);
       result.findings.functionalTests = {
         ...result.findings.functionalTests,
         ...testResults
@@ -141,7 +141,7 @@ export async function verifyCode(
     // 3. Security Scanning
     if (config.security.enabled) {
       logger.debug('Running security scan...');
-      const securityResults = await checkSecurity(filePath, language, config);
+      const securityResults = await checkSecurity(filePath, detectedLanguage, config);
       result.findings.security = securityResults;
       
       // Update confidence score based on security results
@@ -158,7 +158,7 @@ export async function verifyCode(
       logger.debug('Running performance tests...');
       const perfStart = Date.now();
       try {
-        await executeCode(filePath, language, { timeout: config.performance.maxExecutionTime });
+        await executeCode(filePath, detectedLanguage, { timeout: config.performance.maxExecutionTime });
         const executionTime = Date.now() - perfStart;
         
         result.findings.performance = {

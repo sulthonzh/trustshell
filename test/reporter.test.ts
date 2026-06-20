@@ -18,8 +18,8 @@ import {
   ReportConfig,
   validateReportOutput,
   generateMultipleReports
-} from '../src/reporter/reporter';
-import { VerificationResult } from '../src/verifier/verifier';
+} from '../dist/reporter/reporter.js';
+import { VerificationResult } from '../dist/verifier/verifier.js';
 
 describe('reporter module', () => {
   let testDir: string;

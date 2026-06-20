@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 export interface CodeQuality {
   score: number;

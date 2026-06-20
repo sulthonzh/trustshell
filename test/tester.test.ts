@@ -7,8 +7,8 @@ import assert from 'node:assert';
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { runTests } from '../src/tester/tester';
-import { createTestFile, cleanupTestDir, createTestDir } from './setup';
+import { runTests } from '../dist/tester/tester.js';
+import { createTestFile, cleanupTestDir, createTestDir } from './setup.js';
 
 describe('tester module', () => {
 

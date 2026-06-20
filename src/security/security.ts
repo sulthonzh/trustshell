@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 export interface SecurityConfig {
   enabled: boolean;

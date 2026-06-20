@@ -7,8 +7,8 @@ import assert from 'node:assert';
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import { checkSecurity } from '../src/security/security';
-import { createTestFile, cleanupTestDir, createTestDir } from './setup';
+import { checkSecurity } from '../dist/security/security.js';
+import { createTestFile, cleanupTestDir, createTestDir } from './setup.js';
 
 describe('security module', () => {
 
@@ -375,7 +375,7 @@ function add(a, b) {
 `;
       const filePath = createTestFile(testDir, 'clean.js', code);
       const config = {
-        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss']
+        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss'] }
       };
       const result = await checkSecurity(filePath, 'javascript', config);
       assert.strictEqual(result.score, 100);
@@ -392,7 +392,7 @@ document.getElementById('x').innerHTML = userInput;
 `;
       const filePath = createTestFile(testDir, 'test.js', code);
       const config = {
-        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss', 'no-hardcoded-secrets']
+        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss', 'no-hardcoded-secrets'] }
       };
       const result = await checkSecurity(filePath, 'javascript', config);
       assert(result.vulnerabilities.length >= 2);

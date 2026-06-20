@@ -53,6 +53,7 @@ describe('logger module', () => {
         assert.match(args[0], /\[DEBUG\]/);
       };
       const debugLogger = new Logger(LogLevel.DEBUG);
+      debugLogger.setVerbose(true);
       debugLogger.debug('test message');
       console.log = originalConsoleLog;
     });

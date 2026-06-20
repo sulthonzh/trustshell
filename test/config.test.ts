@@ -15,7 +15,7 @@ import {
   saveConfig,
   validateConfigFile,
   getConfigSchema
-} from '../src/config/config';
+} from '../dist/config/config.js';
 
 describe('config module', () => {
 

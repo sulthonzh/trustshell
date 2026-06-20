@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
 import { spawn } from 'child_process';
-import { logger } from '../utils/logger';
+import { logger } from '../utils/logger.js';
 
 export interface TestConfig {
   framework: string;
@@ -27,12 +27,7 @@ export async function runTests(
   filePath: string, 
   language: string, 
   config: any
-): Promise<{
-  passed: number;
-  failed: number;
-  coverage: string;
-  errorMessages: string[];
-}> {
+): Promise<TestResult> {
   logger.debug(`Running tests for: ${filePath} (${language})`);
   
   try {
@@ -44,7 +39,8 @@ export async function runTests(
       passed: testResult.passed,
       failed: testResult.failed,
       coverage: testResult.coverage,
-      errorMessages: testResult.errorMessages
+      errorMessages: testResult.errorMessages,
+      details: testResult.details || []
     };
     
   } catch (error) {
@@ -53,7 +49,8 @@ export async function runTests(
       passed: 0,
       failed: 1,
       coverage: '0%',
-      errorMessages: [`Test execution failed: ${error instanceof Error ? error.message : String(error)}`]
+      errorMessages: [`Test execution failed: ${error instanceof Error ? error.message : String(error)}`],
+      details: []
     };
   }
 }

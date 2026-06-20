@@ -1,7 +1,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { writeFile, unlink } from 'fs/promises';
 import { join } from 'path';
-import { logger } from './logger';
+import { logger } from './logger.js';
 
 export interface ExecutionOptions {
   timeout: number;

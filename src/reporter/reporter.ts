@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { logger } from '../utils/logger';
-import { VerificationResult } from '../verifier/verifier';
+import { logger } from '../utils/logger.js';
+import { VerificationResult } from '../verifier/verifier.js';
 
 export interface ReportFormat {
   type: 'json' | 'html' | 'xml' | 'markdown' | 'console';

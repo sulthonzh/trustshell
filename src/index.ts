@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import { verifyCode } from './verifier/verifier';
-import { loadConfig } from './config/config';
-import { logger } from './utils/logger';
-import { generateReport } from './reporter/reporter';
+import { verifyCode } from './verifier/verifier.js';
+import { loadConfig } from './config/config.js';
+import { logger } from './utils/logger.js';
+import { generateReport } from './reporter/reporter.js';
 
 const program = new Command();
 
@@ -48,7 +48,7 @@ program
       if (options.verbose) config.verbose = true;
       
       // Run verification
-      const result = await verifyCode(file, {
+      const result = await verifyCode(file, '', {
         ...config,
         aiSource: options.aiSource,
         recursive: options.recursive
@@ -171,7 +171,7 @@ console.log(add(0, 0)); // Should output 0`;
       logger.info('Running verification...');
       
       // Run verification
-      const result = await verifyCode(demoFile, {
+      const result = await verifyCode(demoFile, '', {
         depth: 'basic',
         testFrameworks: ['jest'],
         security: { enabled: true, threshold: 80, rules: ['no-eval'] },
