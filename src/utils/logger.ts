@@ -20,26 +20,26 @@ export class Logger {
   debug(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.DEBUG) {
       const prefix = this.isVerbose ? '[DEBUG]' : '';
-      console.log(`${prefix} ${message}`, ...args);
+      console.log(`${prefix}${prefix ? ' ' : ''}${message}`, ...args);
     }
   }
 
   info(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.INFO) {
       const prefix = this.isVerbose ? '[INFO]' : '';
-      console.log(`${prefix} ${message}`, ...args);
+      console.log(`${prefix}${prefix ? ' ' : ''}${message}`, ...args);
     }
   }
 
   warn(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.WARN) {
-      console.warn(`⚠️  ${message}`, ...args);
+      console.log(`⚠️  ${message}`, ...args);
     }
   }
 
   error(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.ERROR) {
-      console.error(`❌ ${message}`, ...args);
+      console.log(`❌ ${message}`, ...args);
     }
   }
 }

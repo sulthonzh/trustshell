@@ -91,9 +91,9 @@ describe('logger module', () => {
     it('should log warn messages when level permits', () => {
       let called = false;
       let message = '';
-      console.log = () => {
+      console.log = (...args: any[]) => {
         called = true;
-        message = arguments[0];
+        message = args[0];
       };
       logger.warn('warn message');
       console.log = originalConsoleLog;
@@ -113,9 +113,9 @@ describe('logger module', () => {
     it('should log error messages always', () => {
       let called = false;
       let message = '';
-      console.log = () => {
+      console.log = (...args: any[]) => {
         called = true;
-        message = arguments[0];
+        message = args[0];
       };
       logger.error('error message');
       console.log = originalConsoleLog;
@@ -328,6 +328,7 @@ describe('logger module', () => {
     });
 
     it('should allow changing log level after creation', () => {
+      const originalConsoleLog = console.log;
       let debugCalled = false;
       console.log = () => { debugCalled = true; };
       const testLogger = new Logger(LogLevel.INFO);
