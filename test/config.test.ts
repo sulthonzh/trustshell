@@ -304,7 +304,7 @@ describe('config module', () => {
       const schema = getConfigSchema();
       assert.strictEqual(typeof schema, 'object');
       assert.strictEqual(schema.type, 'object');
-      assert(Array.isArray(schema.properties));
+      assert.strictEqual(typeof schema.properties, 'object');
     });
 
     it('should include all configuration properties in schema', () => {

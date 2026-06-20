@@ -1,4 +1,5 @@
 import { readFileSync, existsSync } from 'fs';
+import { writeFile } from 'fs/promises';
 import { join } from 'path';
 import { logger } from '../utils/logger.js';
 
@@ -130,7 +131,7 @@ async function loadConfigFile(configPath: string): Promise<TrustshellConfig> {
   }
 }
 
-function validateConfig(config: Partial<TrustshellConfig>): void {
+export function validateConfig(config: Partial<TrustshellConfig>): void {
   // Validate depth option
   if (config.depth && !['basic', 'comprehensive', 'deep'].includes(config.depth)) {
     throw new Error(`Invalid depth option: ${config.depth}. Must be 'basic', 'comprehensive', or 'deep'`);
@@ -188,7 +189,7 @@ function validateConfig(config: Partial<TrustshellConfig>): void {
   }
 }
 
-function mergeConfig(base: TrustshellConfig, override: Partial<TrustshellConfig>): TrustshellConfig {
+export function mergeConfig(base: TrustshellConfig, override: Partial<TrustshellConfig>): TrustshellConfig {
   const merged = { ...base };
   
   // Simple merge for top-level properties
@@ -206,7 +207,7 @@ function mergeConfig(base: TrustshellConfig, override: Partial<TrustshellConfig>
   return merged;
 }
 
-function overrideWithEnvVars(config: TrustshellConfig): TrustshellConfig {
+export function overrideWithEnvVars(config: TrustshellConfig): TrustshellConfig {
   const env = process.env;
   
   // Override depth from environment
@@ -283,8 +284,7 @@ export async function saveConfig(config: TrustshellConfig, outputPath: string): 
   const configContent = `module.exports = ${JSON.stringify(config, null, 2)};`;
   
   try {
-    const fs = require('fs').promises;
-    await fs.writeFile(outputPath, configContent, 'utf8');
+    await writeFile(outputPath, configContent, 'utf8');
     logger.info(`Configuration saved to: ${outputPath}`);
   } catch (error) {
     throw new Error(`Failed to save configuration: ${error instanceof Error ? error.message : String(error)}`);

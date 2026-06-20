@@ -151,6 +151,12 @@ async function validateSyntax(code: string, language: string): Promise<void> {
       if (!checkBalancedBraces(code)) {
         throw new Error('Unbalanced braces or brackets');
       }
+      
+      // TypeScript-specific checks
+      const tsIssues = checkTypeScriptSyntax(code);
+      if (tsIssues.length > 0) {
+        throw new Error(tsIssues[0]);
+      }
       break;
       
     case 'python':
@@ -253,6 +259,32 @@ function checkPythonSyntax(code: string): string[] {
   return issues;
 }
 
+function checkTypeScriptSyntax(code: string): string[] {
+  const issues: string[] = [];
+  
+  // Check for functions without type annotations
+  const functionRegex = /function\s+(\w+)\s*\(([^)]*)\)/g;
+  let match;
+  while ((match = functionRegex.exec(code)) !== null) {
+    const args = match[2] || '';
+    const fnName = match[1] || '';
+    
+    // Check if any parameter is missing type annotation
+    const paramRegex = /([a-zA-Z_]\w*)(?:\s*[:=]|,|$)/g;
+    let paramMatch;
+    while ((paramMatch = paramRegex.exec(args)) !== null) {
+      const paramName = paramMatch[1];
+      // Check if this parameter has a type annotation
+      const paramFullRegex = new RegExp(`${paramName}\s*:`);
+      if (!paramFullRegex.test(args)) {
+        issues.push(`Parameter '${paramName}' in function '${fnName}' is missing type annotation`);
+      }
+    }
+  }
+  
+  return issues;
+}
+
 async function checkJavaScriptQuality(code: string, issues: any[]): Promise<void> {
   // Check for common JavaScript anti-patterns
   if (code.includes('eval(')) {
@@ -292,6 +324,80 @@ async function checkJavaScriptQuality(code: string, issues: any[]): Promise<void
       severity: 'low'
     });
   }
+  
+  // Check for unused variables
+  const unusedVars = findUnusedVariables(code);
+  unusedVars.forEach(varName => {
+    issues.push({
+      type: 'logic',
+      message: `Unused variable: ${varName}`,
+      severity: 'medium'
+    });
+  });
+  
+  // Check for missing semicolons
+  const semicolonIssues = checkSemicolons(code);
+  semicolonIssues.forEach(issue => {
+    issues.push({
+      type: 'style',
+      message: issue,
+      severity: 'low'
+    });
+  });
+  
+  // Check for long functions (>50 lines)
+  const functionMatches = code.match(/function\s+\w+\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/g) || [];
+  functionMatches.forEach(fn => {
+    const fnLines = fn.split('\n').length;
+    if (fnLines > 50) {
+      const fnNameMatch = fn.match(/function\s+(\w+)/);
+      const fnName = fnNameMatch ? fnNameMatch[1] : 'anonymous';
+      issues.push({
+        type: 'performance',
+        message: `Function ${fnName} is too long (${fnLines} lines). Consider breaking it down.`,
+        severity: 'medium'
+      });
+    }
+  });
+}
+
+async function checkTypeScriptQuality(code: string, issues: any[]): Promise<void> {
+  // Check for TypeScript-specific anti-patterns
+  
+  // Check for 'any' types
+  const anyTypeMatches = code.match(/:\s*any\b/g) || [];
+  anyTypeMatches.forEach(match => {
+    issues.push({
+      type: 'style',
+      message: 'Avoid using "any" type. Use specific types or unknown for better type safety.',
+      severity: 'medium'
+    });
+  });
+  
+  // Check for missing type annotations
+  const functionRegex = /function\s+\w+\s*\(([^)]*)\)/g;
+  let match;
+  while ((match = functionRegex.exec(code)) !== null) {
+    const args = match[1] || '';
+    if (args.trim() && !args.includes(':')) {
+      issues.push({
+        type: 'style',
+        message: 'Function parameters should have type annotations',
+        severity: 'medium'
+      });
+    }
+  }
+  
+  // Check for missing return type annotations
+  const functionReturnRegex = /function\s+\w+\s*\([^)]*\)(?!\s*[:=>])/g;
+  const returnMatches = code.match(functionReturnRegex) || [];
+  if (returnMatches.length > 0) {
+    issues.push({
+      type: 'style',
+      message: 'Function should have explicit return type annotation',
+      severity: 'low'
+    });
+  }
 }
 
 async function checkPythonQuality(code: string, issues: any[]): Promise<void> {
@@ -322,6 +428,65 @@ async function checkPythonQuality(code: string, issues: any[]): Promise<void> {
       severity: 'low'
     });
   }
+  
+  // Check for missing docstrings in functions
+  const functionMatches = code.match(/def\s+(\w+)\s*\([^)]*\):/g) || [];
+  functionMatches.forEach(fnMatch => {
+    const fnNameMatch = fnMatch.match(/def\s+(\w+)/);
+    const fnName = fnNameMatch ? fnNameMatch[1] : 'unknown';
+    const fnIndex = code.indexOf(fnMatch);
+    
+    if (fnIndex >= 0) {
+      // Check if there's a docstring (triple-quoted string) after function definition
+      const afterFn = code.slice(fnIndex + fnMatch.length);
+      const docstringRegex = /['\"]{3}[^'\"]*['\"]{3}/;
+      if (!docstringRegex.test(afterFn.slice(0, 200))) {
+        issues.push({
+          type: 'style',
+          message: `Function ${fnName} is missing a docstring`,
+          severity: 'low'
+        });
+      }
+    }
+  });
+  
+  // Check for unused imports
+  const importMatches = code.match(/import\s+(\w+)/g) || [];
+  importMatches.forEach(importLine => {
+    const varNameMatch = importLine.match(/import\s+(\w+)/);
+    if (varNameMatch && varNameMatch[1]) {
+      const importName = varNameMatch[1];
+      const usageRegex = new RegExp(`\\b${importName}\\.`, 'g');
+      
+      // Count how many times the import is used
+      const usageMatches = code.match(usageRegex);
+      const usageCount = usageMatches ? usageMatches.length : 0;
+      
+      if (usageCount === 0) {
+        issues.push({
+          type: 'logic',
+          message: `Unused import: ${importName}`,
+          severity: 'low'
+        });
+      }
+    }
+  });
+  
+  // Check for functions with too many arguments (>5)
+  const functionArgMatches = code.match(/def\s+\w+\s*\(([^)]*)\):/g) || [];
+  functionArgMatches.forEach(fn => {
+    const argMatch = fn.match(/\(([^)]*)\)/);
+    if (argMatch && argMatch[1]) {
+      const args = argMatch[1].split(',').map(a => a.trim()).filter(a => a && !a.startsWith('self'));
+      if (args.length > 5) {
+        issues.push({
+          type: 'logic',
+          message: `Function has too many arguments (${args.length}). Consider using a data class or configuration object.`,
+          severity: 'medium'
+        });
+      }
+    }
+  });
 }
 
 async function checkGoQuality(code: string, issues: any[]): Promise<void> {
@@ -333,6 +498,51 @@ async function checkGoQuality(code: string, issues: any[]): Promise<void> {
       severity: 'low'
     });
   }
+  
+  // Check for missing error handling (ignoring errors with _)
+  const errorIgnoredRegex = /(?:\w+\s*,)?\s*_\s*,\s*\w+\s*:=|\w+\s*,\s*_\s*:=/g;
+  const errorIgnoredMatches = code.match(errorIgnoredRegex) || [];
+  errorIgnoredMatches.forEach(match => {
+    issues.push({
+      type: 'logic',
+      message: 'Error value is being ignored (_). Consider handling the error.',
+      severity: 'medium'
+    });
+  });
+  
+  // Check for unused variables in Go
+  const varDeclMatches = code.match(/(?:var\s+|(?:\w+\s*,\s*)?)(\w+)\s*:=/g) || [];
+  const declaredVars = new Set<string>();
+  varDeclMatches.forEach(match => {
+    const varNameMatch = match.match(/(?:var\s+|(?:\w+\s*,\s*)?)(\w+)\s*:=/);
+    if (varNameMatch && varNameMatch[1]) {
+      declaredVars.add(varNameMatch[1]);
+    }
+  });
+  
+  // Check for return statements that don't use all declared variables
+  const returnMatches = code.match(/return\s+([^\n]+);?/g) || [];
+  declaredVars.forEach(varName => {
+    let used = false;
+    for (const returnLine of returnMatches) {
+      if (returnLine.includes(varName)) {
+        used = true;
+        break;
+      }
+    }
+    
+    // Also check if variable is used anywhere in the same function
+    if (!used) {
+      const varUsageRegex = new RegExp(`\\b${varName}\\.`, 'g');
+      if (!varUsageRegex.test(code)) {
+        issues.push({
+          type: 'logic',
+          message: `Unused variable: ${varName}`,
+          severity: 'low'
+        });
+      }
+    }
+  });
 }
 
 async function checkRustQuality(code: string, issues: any[]): Promise<void> {
@@ -411,22 +621,109 @@ async function generateFunctionalTests(code: string, language: string): Promise<
 
 // Helper functions for syntax checking
 function findUndefinedVariables(code: string): string[] {
-  // This is a simplified implementation
-  // Real implementation would use AST parsing
+  // This is a simplified implementation - checks for variables used before being defined
   const undefinedVars: string[] = [];
-  return undefinedVars;
+  
+  // Extract variable declarations
+  const declaredVars = new Set<string>();
+  const varRegex = /(?:var|let|const|function|class)\s+(\w+)/g;
+  let match;
+  while ((match = varRegex.exec(code)) !== null) {
+    if (match[1]) declaredVars.add(match[1]);
+  }
+  
+  // Extract built-in globals and imports
+  const builtIns = new Set([
+    'console', 'window', 'document', 'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval',
+    'require', 'module', 'exports', 'process', 'Buffer', 'Promise', 'Error', 'Array', 'Object',
+    'String', 'Number', 'Boolean', 'Math', 'Date', 'JSON', 'Map', 'Set', 'Symbol', 'Reflect',
+    'fetch', 'URL', 'Headers', 'Request', 'Response'
+  ]);
+  
+  // Extract potential variable usages
+  const usageRegex = /\b([a-zA-Z_]\w*)\b/g;
+  const usages = new Set<string>();
+  while ((match = usageRegex.exec(code)) !== null) {
+    if (match[1] && !declaredVars.has(match[1]) && !builtIns.has(match[1])) {
+      usages.add(match[1]);
+    }
+  }
+  
+  return Array.from(usages);
 }
 
 function findUnusedVariables(code: string): string[] {
-  // This is a simplified implementation
-  // Real implementation would use AST parsing
+  // This is a simplified implementation - checks for declared variables that are never used
   const unusedVars: string[] = [];
+  
+  // Extract variable declarations with line numbers
+  const declaredVars = new Map<string, { line: number; used: boolean }>();
+  const lines = code.split('\n');
+  
+  lines.forEach((line, lineNum) => {
+    const varRegex = /(?:var|let|const)\s+(\w+)/g;
+    let match;
+    while ((match = varRegex.exec(line)) !== null) {
+      if (match[1]) {
+        declaredVars.set(match[1], { line: lineNum + 1, used: false });
+      }
+    }
+  });
+  
+  // Mark variables as used
+  declaredVars.forEach((info, varName) => {
+    const usageRegex = new RegExp(`\\b${varName}\\b`, 'g');
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (line && usageRegex.test(line) && i !== info.line - 1) {
+        info.used = true;
+        break;
+      }
+    }
+  });
+  
+  // Collect unused variables
+  declaredVars.forEach((info, varName) => {
+    if (!info.used) {
+      unusedVars.push(varName);
+    }
+  });
+  
   return unusedVars;
 }
 
 function checkSemicolons(code: string): string[] {
   const issues: string[] = [];
-  // This is a simplified check
+  const lines = code.split('\n');
+  
+  lines.forEach((line, lineNum) => {
+    const trimmed = line.trim();
+    
+    // Skip comments and empty lines
+    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*')) {
+      return;
+    }
+    
+    // Skip lines that end with braces (blocks, objects, functions)
+    if (trimmed.endsWith('}') || trimmed.endsWith('{')) {
+      return;
+    }
+    
+    // Check for statements that should have semicolons
+    // Simple heuristic: statements ending with a closing parenthesis but no semicolon
+    if (trimmed.includes('return ') || trimmed.includes('throw ')) {
+      if (!trimmed.endsWith(';') && !trimmed.endsWith('}')) {
+        issues.push(`Line ${lineNum + 1}: Missing semicolon after ${trimmed.split(' ')[0]} statement`);
+      }
+    }
+    
+    // Check for variable assignments without semicolons
+    const assignmentRegex = /^(?:var|let|const)\s+\w+\s*=.+[^;]$/;
+    if (assignmentRegex.test(trimmed) && !trimmed.includes('function')) {
+      issues.push(`Line ${lineNum + 1}: Missing semicolon after variable declaration`);
+    }
+  });
+  
   return issues;
 }
 
