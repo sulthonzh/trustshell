@@ -75,7 +75,7 @@ async function analyzeCodeQuality(code: string, language: string): Promise<CodeQ
   
   let score = 100;
   
-  // Basic syntax checks
+  // Basic syntax checks (synchronous - no async operations)
   try {
     validateSyntax(code, language);
   } catch (error: unknown) {
@@ -129,34 +129,18 @@ async function analyzeCodeQuality(code: string, language: string): Promise<CodeQ
   return { score, issues };
 }
 
-async function validateSyntax(code: string, language: string): Promise<void> {
+function validateSyntax(code: string, language: string): void {
   // Basic syntax validation for common languages
+  // Only validate critical structural syntax, not style/quality issues
+  // This is a synchronous function - no async operations
   switch (language) {
     case 'javascript':
-      // Check for basic syntax errors
-      if (!checkBalancedBraces(code)) {
-        throw new Error('Unbalanced braces or brackets');
-      }
-      
-      // Check for basic JavaScript syntax issues
-      const jsIssues = checkJavaScriptSyntax(code);
-      if (jsIssues.length > 0) {
-        throw new Error(jsIssues[0]);
-      }
-      break;
-      
     case 'typescript':
-      // TypeScript syntax validation would be more complex
-      // For now, just basic checks
+      // Check for basic syntax errors - only critical structural issues
       if (!checkBalancedBraces(code)) {
         throw new Error('Unbalanced braces or brackets');
       }
-      
-      // TypeScript-specific checks
-      const tsIssues = checkTypeScriptSyntax(code);
-      if (tsIssues.length > 0) {
-        throw new Error(tsIssues[0]);
-      }
+      // Note: undefined variables and other style issues are handled in checkJavaScriptQuality, not here
       break;
       
     case 'python':
@@ -168,30 +152,10 @@ async function validateSyntax(code: string, language: string): Promise<void> {
       break;
       
     case 'go':
-      // Go syntax validation would require the Go compiler
-      // For now, basic structure checks
-      if (!checkBalancedBraces(code)) {
-        throw new Error('Unbalanced braces or brackets');
-      }
-      break;
-      
     case 'rust':
-      // Rust syntax validation would require the Rust compiler
-      // For now, basic structure checks
-      if (!checkBalancedBraces(code)) {
-        throw new Error('Unbalanced braces or brackets');
-      }
-      break;
-      
     case 'java':
-      // Java basic syntax checks
-      if (!checkBalancedBraces(code)) {
-        throw new Error('Unbalanced braces or brackets');
-      }
-      break;
-      
     default:
-      // Generic syntax check
+      // Generic syntax check for C-style languages
       if (!checkBalancedBraces(code)) {
         throw new Error('Unbalanced braces or brackets');
       }
@@ -345,11 +309,11 @@ async function checkJavaScriptQuality(code: string, issues: any[]): Promise<void
     });
   });
   
-  // Check for long functions (>50 lines)
+  // Check for long functions (>20 lines)
   const functionMatches = code.match(/function\s+\w+\s*\([^)]*\)\s*\{([\s\S]*?)\n\}/g) || [];
   functionMatches.forEach(fn => {
     const fnLines = fn.split('\n').length;
-    if (fnLines > 50) {
+    if (fnLines > 20) {
       const fnNameMatch = fn.match(/function\s+(\w+)/);
       const fnName = fnNameMatch ? fnNameMatch[1] : 'anonymous';
       issues.push({
@@ -374,15 +338,30 @@ async function checkTypeScriptQuality(code: string, issues: any[]): Promise<void
     });
   });
   
-  // Check for missing type annotations
+  // Check for missing type annotations in function parameters
   const functionRegex = /function\s+\w+\s*\(([^)]*)\)/g;
   let match;
   while ((match = functionRegex.exec(code)) !== null) {
     const args = match[1] || '';
+    // Check if there are parameters but no type annotations
     if (args.trim() && !args.includes(':')) {
       issues.push({
         type: 'style',
         message: 'Function parameters should have type annotations',
+        severity: 'medium'
+      });
+    }
+  }
+  
+  // Check for arrow functions with missing type annotations
+  const arrowFunctionRegex = /(?:const|let|var)\s+\w+\s*=\s*(?:async\s+)?\(([^)]*)\)\s*=>/g;
+  while ((match = arrowFunctionRegex.exec(code)) !== null) {
+    const args = match[1] || '';
+    // Check if there are parameters but no type annotations
+    if (args.trim() && !args.includes(':')) {
+      issues.push({
+        type: 'style',
+        message: 'Arrow function parameters should have type annotations',
         severity: 'medium'
       });
     }
@@ -579,13 +558,16 @@ async function checkGenericQuality(code: string, issues: any[], language: string
     });
   }
   
-  // Check for TODO comments
+  // Check for TODO comments - each comment is a separate issue
   const todoMatches = code.match(/TODO|FIXME|HACK/gi);
-  if (todoMatches && todoMatches.length > 3) {
-    issues.push({
-      type: 'style',
-      message: `Multiple TODO/FIXME comments found (${todoMatches.length})`,
-      severity: 'low'
+  if (todoMatches && todoMatches.length >= 1) {
+    // Add an issue for each TODO/FIXME comment found
+    todoMatches.forEach((match, index) => {
+      issues.push({
+        type: 'style',
+        message: `${match} comment found`,
+        severity: 'low'
+      });
     });
   }
 }
@@ -622,6 +604,7 @@ async function generateFunctionalTests(code: string, language: string): Promise<
 // Helper functions for syntax checking
 function findUndefinedVariables(code: string): string[] {
   // This is a simplified implementation - checks for variables used before being defined
+  // Note: This is a style check, not a syntax error
   const undefinedVars: string[] = [];
   
   // Extract variable declarations
@@ -630,6 +613,23 @@ function findUndefinedVariables(code: string): string[] {
   let match;
   while ((match = varRegex.exec(code)) !== null) {
     if (match[1]) declaredVars.add(match[1]);
+  }
+  
+  // Extract function parameters (these are NOT undefined, they're local to the function)
+  const paramVars = new Set<string>();
+  const paramRegex = /function\s+\w+\s*\(([^)]*)\)/g;
+  while ((match = paramRegex.exec(code)) !== null) {
+    const params = match[1] || '';
+    const paramList = params.split(',').map(p => p.trim()).filter(p => p && !p.includes('='));
+    paramList.forEach(p => paramVars.add(p));
+  }
+  
+  // Extract arrow function parameters
+  const arrowParamRegex = /(?:const|let|var)?\s*(\w+)\s*=\s*(?:\(([^)]*)\)|([^=]+))\s*=>/g;
+  while ((match = arrowParamRegex.exec(code)) !== null) {
+    const arrowParams = match[2] || match[3] || '';
+    const paramList = arrowParams.split(',').map(p => p.trim()).filter(p => p && !p.includes('='));
+    paramList.forEach(p => paramVars.add(p));
   }
   
   // Extract built-in globals and imports
@@ -646,11 +646,11 @@ function findUndefinedVariables(code: string): string[] {
     'fetch', 'URL', 'Headers', 'Request', 'Response', 'true', 'false', 'null', 'undefined'
   ]);
   
-  // Extract potential variable usages
+  // Extract potential variable usages, excluding function parameters
   const usageRegex = /\b([a-zA-Z_]\w*)\b/g;
   const usages = new Set<string>();
   while ((match = usageRegex.exec(code)) !== null) {
-    if (match[1] && !declaredVars.has(match[1]) && !builtIns.has(match[1])) {
+    if (match[1] && !declaredVars.has(match[1]) && !builtIns.has(match[1]) && !paramVars.has(match[1])) {
       usages.add(match[1]);
     }
   }
