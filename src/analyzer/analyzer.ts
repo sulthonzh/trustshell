@@ -634,10 +634,16 @@ function findUndefinedVariables(code: string): string[] {
   
   // Extract built-in globals and imports
   const builtIns = new Set([
+    // JavaScript keywords
+    'function', 'const', 'let', 'var', 'if', 'else', 'for', 'while', 'do', 'switch', 'case',
+    'break', 'continue', 'return', 'try', 'catch', 'finally', 'throw', 'new', 'this',
+    'class', 'extends', 'super', 'static', 'import', 'export', 'default', 'from', 'as',
+    'async', 'await', 'typeof', 'instanceof', 'in', 'of', 'void', 'delete', 'yield',
+    // Built-in objects
     'console', 'window', 'document', 'setTimeout', 'setInterval', 'clearTimeout', 'clearInterval',
     'require', 'module', 'exports', 'process', 'Buffer', 'Promise', 'Error', 'Array', 'Object',
     'String', 'Number', 'Boolean', 'Math', 'Date', 'JSON', 'Map', 'Set', 'Symbol', 'Reflect',
-    'fetch', 'URL', 'Headers', 'Request', 'Response'
+    'fetch', 'URL', 'Headers', 'Request', 'Response', 'true', 'false', 'null', 'undefined'
   ]);
   
   // Extract potential variable usages
