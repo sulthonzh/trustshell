@@ -4,7 +4,7 @@
 
 import { describe, it, mock } from 'node:test';
 import assert from 'node:assert';
-import { unlinkSync, writeFileSync, existsSync } from 'fs';
+import { unlinkSync, writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import {
   loadConfig,
@@ -390,15 +390,15 @@ describe('config file operations', () => {
       assert(existsSync(testConfigPath));
     });
 
-    it('should save configuration as valid JavaScript module', () => {
+    it('should save configuration as valid JavaScript module', async () => {
       const testConfig = DEFAULT_CONFIG;
-      saveConfig(testConfig, testConfigPath);
-      const content = require('fs').readFileSync(testConfigPath, 'utf8');
+      await saveConfig(testConfig, testConfigPath);
+      const content = readFileSync(testConfigPath, 'utf8');
       assert(content.startsWith('module.exports ='));
       assert(content.endsWith(';'));
     });
 
-    it('should save configuration with custom settings', () => {
+    it('should save configuration with custom settings', async () => {
       const customConfig = {
         depth: 'deep' as const,
         testFrameworks: ['mocha'],
@@ -416,8 +416,10 @@ describe('config file operations', () => {
           javascript: { testFramework: 'mocha', linting: false }
         }
       };
-      assert.doesNotThrow(() => saveConfig(customConfig, testConfigPath));
-      const loadedConfig = require(testConfigPath);
+      await saveConfig(customConfig, testConfigPath);
+      const content = readFileSync(testConfigPath, 'utf8');
+      const jsonStr = content.replace('module.exports = ', '').replace(/;$/, '');
+      const loadedConfig = JSON.parse(jsonStr);
       assert.strictEqual(loadedConfig.depth, 'deep');
       assert.deepStrictEqual(loadedConfig.testFrameworks, ['mocha']);
       assert.strictEqual(loadedConfig.security.enabled, false);
