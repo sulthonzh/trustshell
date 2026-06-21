@@ -2,7 +2,7 @@
  * Tests for config module - Configuration loading, validation, and merging
  */
 
-import { describe, it, mock } from 'node:test';
+import { describe, it, mock, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert';
 import { unlinkSync, writeFileSync, existsSync, readFileSync } from 'fs';
 import { join } from 'path';
@@ -370,8 +370,20 @@ describe('config file operations', () => {
   // Clean up before tests
   const cleanup = () => {
     try {
+      // Clean up files
       if (existsSync(testConfigPath)) unlinkSync(testConfigPath);
       if (existsSync(invalidConfigPath)) unlinkSync(invalidConfigPath);
+      // Clean up environment variables
+      delete process.env.TRUSTSHELL_DEPTH;
+      delete process.env.TRUSTSHELL_SECURITY_THRESHOLD;
+      delete process.env.TRUSTSHELL_VERBOSE;
+      delete process.env.TRUSTSHELL_MAX_EXECUTION_TIME;
+      delete process.env.TRUSTSHELL_MEMORY_LIMIT;
+      delete process.env.TRUSTSHELL_TEST_FRAMEWORKS;
+      delete process.env.TRUSTSHELL_SECURITY_ENABLED;
+      delete process.env.TRUSTSHELL_AI_SOURCE;
+      delete process.env.TRUSTSHELL_BENCHMARK;
+      delete process.env.TRUSTSHELL_RECURSIVE;
     } catch (error) {
       // Ignore cleanup errors
     }
@@ -379,6 +391,10 @@ describe('config file operations', () => {
 
   const before = cleanup;
   const after = cleanup;
+
+  // Run cleanup before and after each test
+  beforeEach(() => cleanup());
+  afterEach(() => cleanup());
 
   describe('saveConfig', () => {
     it('should save configuration to file', () => {

@@ -1,3 +1,6 @@
+/**
+ * Tests for logger module - Logger functionality
+ */
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { Logger, LogLevel } from '../dist/utils/logger.js';
@@ -40,6 +43,7 @@ describe('logger module', () => {
                 assert.match(args[0], /\[DEBUG\]/);
             };
             const debugLogger = new Logger(LogLevel.DEBUG);
+            debugLogger.setVerbose(true);
             debugLogger.debug('test message');
             console.log = originalConsoleLog;
         });
@@ -73,9 +77,9 @@ describe('logger module', () => {
         it('should log warn messages when level permits', () => {
             let called = false;
             let message = '';
-            console.log = () => {
+            console.log = (...args) => {
                 called = true;
-                message = arguments[0];
+                message = args[0];
             };
             logger.warn('warn message');
             console.log = originalConsoleLog;
@@ -93,9 +97,9 @@ describe('logger module', () => {
         it('should log error messages always', () => {
             let called = false;
             let message = '';
-            console.log = () => {
+            console.log = (...args) => {
                 called = true;
-                message = arguments[0];
+                message = args[0];
             };
             logger.error('error message');
             console.log = originalConsoleLog;
@@ -288,6 +292,7 @@ describe('logger module', () => {
             assert.strictEqual(testLogger.isVerbose, false);
         });
         it('should allow changing log level after creation', () => {
+            const originalConsoleLog = console.log;
             let debugCalled = false;
             console.log = () => { debugCalled = true; };
             const testLogger = new Logger(LogLevel.INFO);
@@ -300,4 +305,3 @@ describe('logger module', () => {
         });
     });
 });
-//# sourceMappingURL=logger.test.js.map

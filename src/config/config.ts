@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'fs';
-import { writeFile } from 'fs/promises';
+import { writeFile, readFile } from 'fs/promises';
 import { join } from 'path';
 import { logger } from '../utils/logger.js';
 
@@ -116,9 +116,11 @@ export async function loadConfig(configPath?: string): Promise<TrustshellConfig>
 
 async function loadConfigFile(configPath: string): Promise<TrustshellConfig> {
   try {
-    // Use dynamic import for ESM compatibility
-    const configModule = await import(configPath);
-    const config = configModule.default || configModule;
+    // Read file directly to bypass import cache
+    const content = await readFile(configPath, 'utf8');
+    // Remove 'export default ' and trailing semicolon to parse as JSON
+    const jsonStr = content.replace(/^export default\s*/, '').replace(/;$/, '');
+    const config = JSON.parse(jsonStr) as TrustshellConfig;
     
     // Validate the configuration
     validateConfig(config);

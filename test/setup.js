@@ -1,21 +1,37 @@
+/**
+ * Common test setup and utilities for trustshell tests
+ */
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+/**
+ * Create a temporary directory for test fixtures
+ */
 export function createTestDir() {
     return mkdtempSync(join(tmpdir(), 'trustshell-test-'));
 }
+/**
+ * Clean up a test directory
+ */
 export function cleanupTestDir(dir) {
     try {
         rmSync(dir, { recursive: true, force: true });
     }
     catch (error) {
+        // Ignore cleanup errors
     }
 }
+/**
+ * Create a test file with given content
+ */
 export function createTestFile(dir, filename, content) {
     const filepath = join(dir, filename);
     writeFileSync(filepath, content, 'utf8');
     return filepath;
 }
+/**
+ * Sample test code snippets for different languages
+ */
 export const TEST_CODE_SNIPPETS = {
     javascript: `
 function add(a, b) {
@@ -155,6 +171,9 @@ eval("console.log('dangerous')");
 const password = "secret123";
 `
 };
+/**
+ * Sample configurations for testing
+ */
 export const SAMPLE_CONFIGS = {
     basic: {
         depth: 'basic',
@@ -229,4 +248,3 @@ export const SAMPLE_CONFIGS = {
         }
     }
 };
-//# sourceMappingURL=setup.js.map

@@ -1,3 +1,6 @@
+/**
+ * Tests for analyzer module - Code quality analysis
+ */
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { analyzeCode } from '../dist/analyzer/analyzer.js';
@@ -360,4 +363,3 @@ function processData() {
         });
     });
 });
-//# sourceMappingURL=analyzer.test.js.map

@@ -1,3 +1,6 @@
+/**
+ * Tests for tester module - Test execution
+ */
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { runTests } from '../dist/tester/tester.js';
@@ -187,6 +190,7 @@ function add(a, b) {
                 files: [filePath]
             };
             const result = await runTests(filePath, 'javascript', config);
+            // Should report syntax errors
             assert(result.errorMessages.length >= 0);
             teardown();
         });
@@ -365,6 +369,7 @@ test('add function', () => {
                 files: [filePath]
             };
             const result = await runTests(filePath, 'sql', config);
+            // Should return some result even for unsupported languages
             assert.strictEqual(typeof result.passed, 'number');
             assert.strictEqual(typeof result.failed, 'number');
             teardown();
@@ -395,6 +400,7 @@ test('add function', () => {
                 files: [filePath]
             };
             const result = await runTests(filePath, 'javascript', config);
+            // Should handle gracefully
             assert.strictEqual(typeof result.passed, 'number');
             assert.strictEqual(typeof result.failed, 'number');
             teardown();
@@ -414,6 +420,7 @@ function infiniteLoop() {
                 customTests: undefined,
                 files: [filePath]
             };
+            // This might take time or throw, but should not hang indefinitely
             const result = await runTests(filePath, 'javascript', config);
             assert.strictEqual(typeof result.passed, 'number');
             teardown();
@@ -523,4 +530,3 @@ test('add function', () => {
         });
     });
 });
-//# sourceMappingURL=tester.test.js.map

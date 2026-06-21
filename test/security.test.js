@@ -1,3 +1,6 @@
+/**
+ * Tests for security module - Security vulnerability detection
+ */
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { checkSecurity } from '../dist/security/security.js';
@@ -354,4 +357,3 @@ document.getElementById('x').innerHTML = userInput;
         });
     });
 });
-//# sourceMappingURL=security.test.js.map

@@ -1,6 +1,9 @@
+/**
+ * Tests for verifier module - Main verification orchestration
+ */
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert';
-import { verify } from '../dist/verifier/verifier.js';
+import { verifyCode } from '../dist/verifier/verifier.js';
 import { createTestFile, cleanupTestDir, createTestDir, SAMPLE_CONFIGS } from './setup.js';
 describe('verifier module', () => {
     let testDir;
@@ -31,7 +34,7 @@ function greet(name) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(typeof result.status, 'string');
             assert(['verified', 'partial', 'failed'].includes(result.status));
             assert.strictEqual(typeof result.confidenceScore, 'number');
@@ -57,7 +60,7 @@ function greet(name) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(result.metadata.verificationDepth, 'comprehensive');
             teardown();
         });
@@ -72,7 +75,7 @@ function greet(name) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(result.metadata.verificationDepth, 'deep');
             teardown();
         });
@@ -93,7 +96,7 @@ def greet(name):
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'python', config);
+            const result = await verifyCode(testFilePath, 'python', config);
             assert.strictEqual(result.metadata.language, 'python');
             teardown();
         });
@@ -120,7 +123,7 @@ func main() {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'go', config);
+            const result = await verifyCode(testFilePath, 'go', config);
             assert.strictEqual(result.metadata.language, 'go');
             teardown();
         });
@@ -143,7 +146,7 @@ fn main() {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'rust', config);
+            const result = await verifyCode(testFilePath, 'rust', config);
             assert.strictEqual(result.metadata.language, 'rust');
             teardown();
         });
@@ -167,7 +170,7 @@ function createUser(id: number, name: string): User {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'typescript', config);
+            const result = await verifyCode(testFilePath, 'typescript', config);
             assert.strictEqual(result.metadata.language, 'typescript');
             teardown();
         });
@@ -182,7 +185,7 @@ function createUser(id: number, name: string): User {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(result.metadata.aiSource, 'GPT-4');
             teardown();
         });
@@ -201,7 +204,7 @@ function add(a, b) { return a + b; }
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(result.findings.security.score, 100);
             teardown();
         });
@@ -217,7 +220,7 @@ function add(a, b) { return a + b; }
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert(result.metadata);
             teardown();
         });
@@ -239,7 +242,7 @@ eval("console.log('test')");
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert(result.confidenceScore < 100);
             assert(result.confidenceScore >= 0);
             teardown();
@@ -272,7 +275,8 @@ function divide(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
+            // Clean code should have high confidence
             assert(['verified', 'partial'].includes(result.status));
             teardown();
         });
@@ -294,8 +298,9 @@ eval("console.log('dangerous')");
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert(Array.isArray(result.recommendations));
+            // Should have recommendations for security and code quality issues
             assert(result.recommendations.length > 0);
             teardown();
         });
@@ -310,7 +315,7 @@ eval("console.log('dangerous')");
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -329,7 +334,8 @@ function add(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
+            // Should handle syntax errors gracefully
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -354,7 +360,7 @@ describe('add function', () => {
                 verbose: false,
                 recursive: false
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -369,7 +375,7 @@ describe('add function', () => {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -384,7 +390,7 @@ describe('add function', () => {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -399,7 +405,7 @@ describe('add function', () => {
                 recursive: true,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -420,7 +426,7 @@ function add(a, b) { return a + b; }
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert(['partial', 'failed'].includes(result.status));
             teardown();
         });
@@ -454,7 +460,7 @@ function divide(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert(['verified', 'partial'].includes(result.status));
             teardown();
         });
@@ -469,7 +475,7 @@ function divide(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert(result.metadata.timestamp);
             assert.doesNotThrow(() => new Date(result.metadata.timestamp));
             teardown();
@@ -485,7 +491,7 @@ function divide(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert(result.findings.functionalTests);
             assert(result.findings.codeQuality);
             assert(result.findings.security);
@@ -505,7 +511,7 @@ function divide(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'sql', config);
+            const result = await verifyCode(testFilePath, 'sql', config);
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -532,7 +538,8 @@ function add(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
+            // Check that all modules were called and results are present
             assert(result.findings.codeQuality);
             assert(result.findings.security);
             assert(result.findings.functionalTests);
@@ -554,7 +561,8 @@ function add(a, b) {
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            // Even if one module fails, verification should continue
+            const result = await verifyCode(testFilePath, 'javascript', config);
             assert.strictEqual(typeof result.status, 'string');
             teardown();
         });
@@ -576,11 +584,11 @@ eval("console.log('test')");
                 recursive: false,
                 customTests: undefined
             };
-            const result = await verify(testFilePath, 'javascript', config);
+            const result = await verifyCode(testFilePath, 'javascript', config);
+            // Check that all modules contributed to the result
             assert(result.findings.codeQuality.issues.length > 0 || result.findings.codeQuality.score < 100);
             assert(result.findings.security.vulnerabilities.length > 0 || result.findings.security.score < 100);
             teardown();
         });
     });
 });
-//# sourceMappingURL=verifier.test.js.map

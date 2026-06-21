@@ -1,3 +1,6 @@
+/**
+ * Tests for reporter module - Report generation
+ */
 import { describe, it } from 'node:test';
 import assert from 'node:assert';
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from 'fs';
@@ -14,6 +17,7 @@ describe('reporter module', () => {
             rmSync(testDir, { recursive: true, force: true });
         }
         catch (error) {
+            // Ignore cleanup errors
         }
     };
     const getMockVerificationResult = () => {
@@ -287,6 +291,7 @@ describe('reporter module', () => {
         it('should color-code severity levels', () => {
             const result = getMockVerificationResult();
             const html = generateHtmlReport(result);
+            // Check for CSS classes that style different severities
             assert(html.includes('critical'));
             assert(html.includes('low'));
             assert(html.includes('medium'));
@@ -431,12 +436,14 @@ describe('reporter module', () => {
             const result = getMockVerificationResult();
             const consoleReport = generateConsoleReport(result);
             assert(consoleReport.includes(result.status.toUpperCase()));
+            // Check for emoji
             assert(/[✅⚠️❌❓]/.test(consoleReport));
         });
         it('should include confidence score with emoji', () => {
             const result = getMockVerificationResult();
             const consoleReport = generateConsoleReport(result);
             assert(consoleReport.includes(`${result.confidenceScore}%`));
+            // Check for emoji
             assert(/[🟢🟡🟠🔴]/.test(consoleReport));
         });
         it('should include functional tests section', () => {
@@ -608,6 +615,7 @@ describe('reporter module', () => {
             setup();
             const result = getMockVerificationResult();
             await generateMultipleReports(result, testDir);
+            // Default formats are ['json', 'html', 'markdown']
             assert(readFileSync(join(testDir, 'report.json'), 'utf8').length > 0);
             assert(readFileSync(join(testDir, 'report.html'), 'utf8').length > 0);
             assert(readFileSync(join(testDir, 'report.md'), 'utf8').length > 0);
@@ -699,4 +707,3 @@ describe('reporter module', () => {
         });
     });
 });
-//# sourceMappingURL=reporter.test.js.map
