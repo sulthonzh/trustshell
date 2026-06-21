@@ -397,12 +397,12 @@ describe('config file operations', () => {
   afterEach(() => cleanup());
 
   describe('saveConfig', () => {
-    it('should save configuration to file', () => {
+    it('should save configuration to file', async () => {
       const testConfig = {
         ...DEFAULT_CONFIG,
         depth: 'comprehensive' as const
       };
-      assert.doesNotThrow(() => saveConfig(testConfig, testConfigPath));
+      await saveConfig(testConfig, testConfigPath);
       assert(existsSync(testConfigPath));
     });
 
@@ -556,7 +556,7 @@ describe('config file operations', () => {
           javascript: { testFramework: 'mocha', linting: true }
         }
       };
-      saveConfig(customConfig, testConfigPath);
+      await saveConfig(customConfig, testConfigPath);
       process.env.TRUSTSHELL_SECURITY_THRESHOLD = '95';
       const config = await loadConfig(testConfigPath);
       assert.strictEqual(config.depth, 'comprehensive');
