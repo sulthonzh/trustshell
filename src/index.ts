@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import fs from 'fs';
 import { Command } from 'commander';
 import { verifyCode } from './verifier/verifier.js';
 import { loadConfig } from './config/config.js';
@@ -104,7 +105,7 @@ program
   .option('-o, --output <file>', 'Output file', 'trustshell.config.js')
   .action(async (options) => {
     try {
-      const configTemplate = `module.exports = {
+      const configTemplate = `export default {
   // Test frameworks to use
   testFrameworks: ['jest', 'mocha'],
   
@@ -138,7 +139,7 @@ program
   }
 };`;
       
-      require('fs').writeFileSync(options.output, configTemplate);
+      fs.writeFileSync(options.output, configTemplate);
       logger.info(`Configuration file generated: ${options.output}`);
       
     } catch (error) {
@@ -163,7 +164,6 @@ console.log(add(1, 2)); // Should output 3
 console.log(add(-1, 5)); // Should output 4
 console.log(add(0, 0)); // Should output 0`;
 
-      const fs = require('fs');
       const demoFile = '/tmp/demo-code.js';
       fs.writeFileSync(demoFile, demoCode);
       
