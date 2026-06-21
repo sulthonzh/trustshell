@@ -82,16 +82,11 @@ export const DEFAULT_CONFIG: TrustshellConfig = {
 export async function loadConfig(configPath?: string): Promise<TrustshellConfig> {
   let config = DEFAULT_CONFIG;
   
-  // Load from config file if provided
+  // Load from config file if provided (throw on error for explicit config)
   if (configPath) {
-    try {
-      const fileConfig = await loadConfigFile(configPath);
-      config = mergeConfig(config, fileConfig);
-      logger.debug(`Loaded configuration from: ${configPath}`);
-    } catch (error) {
-      logger.warn(`Failed to load config file ${configPath}: ${error instanceof Error ? error.message : String(error)}`);
-      logger.info('Using default configuration');
-    }
+    const fileConfig = await loadConfigFile(configPath);
+    config = mergeConfig(config, fileConfig);
+    logger.debug(`Loaded configuration from: ${configPath}`);
   }
   
   // Load from default config file if it exists
@@ -106,8 +101,10 @@ export async function loadConfig(configPath?: string): Promise<TrustshellConfig>
     }
   }
   
-  // Override with environment variables
-  config = overrideWithEnvVars(config);
+  // Override with environment variables (only if not explicitly set via configPath)
+  if (!configPath) {
+    config = overrideWithEnvVars(config);
+  }
   
   logger.debug('Final configuration loaded');
   
@@ -116,10 +113,8 @@ export async function loadConfig(configPath?: string): Promise<TrustshellConfig>
 
 async function loadConfigFile(configPath: string): Promise<TrustshellConfig> {
   try {
-    // Clear require cache to allow hot reloading
-    delete require.cache[require.resolve(configPath)];
-    
-    const configModule = require(configPath);
+    // Use dynamic import for ESM compatibility
+    const configModule = await import(configPath);
     const config = configModule.default || configModule;
     
     // Validate the configuration

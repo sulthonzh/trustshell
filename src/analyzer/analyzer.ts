@@ -91,20 +91,29 @@ async function analyzeCodeQuality(code: string, language: string): Promise<CodeQ
   // Language-specific quality checks
   switch (language) {
     case 'javascript':
+      await checkJavaScriptQuality(code, issues);
+      await checkGenericQuality(code, issues, language);
+      break;
     case 'typescript':
       await checkJavaScriptQuality(code, issues);
+      await checkTypeScriptQuality(code, issues);
+      await checkGenericQuality(code, issues, language);
       break;
     case 'python':
       await checkPythonQuality(code, issues);
+      await checkGenericQuality(code, issues, language);
       break;
     case 'go':
       await checkGoQuality(code, issues);
+      await checkGenericQuality(code, issues, language);
       break;
     case 'rust':
       await checkRustQuality(code, issues);
+      await checkGenericQuality(code, issues, language);
       break;
     case 'java':
       await checkJavaQuality(code, issues);
+      await checkGenericQuality(code, issues, language);
       break;
     default:
       // Generic checks for other languages
@@ -319,6 +328,27 @@ async function checkJavaScriptQuality(code: string, issues: any[]): Promise<void
       issues.push({
         type: 'performance',
         message: `Function ${fnName} is too long (${fnLines} lines). Consider breaking it down.`,
+        severity: 'high'
+      });
+    }
+  });
+  
+  // Check for multiple const/let/var declarations on same line (bad style)
+  const lines = code.split('\n');
+  lines.forEach((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*')) {
+      return;
+    }
+    // Count how many const/let/var declarations on this line
+    const constCount = (trimmed.match(/const\s+\w+/g) || []).length;
+    const letCount = (trimmed.match(/let\s+\w+/g) || []).length;
+    const varCount = (trimmed.match(/var\s+\w+/g) || []).length;
+    const totalDecls = constCount + letCount + varCount;
+    if (totalDecls > 2) {
+      issues.push({
+        type: 'style',
+        message: `Too many variable declarations (${totalDecls}) on one line. Consider splitting for readability.`,
         severity: 'medium'
       });
     }
@@ -566,7 +596,7 @@ async function checkGenericQuality(code: string, issues: any[], language: string
       issues.push({
         type: 'style',
         message: `${match} comment found`,
-        severity: 'low'
+        severity: 'medium'
       });
     });
   }
