@@ -454,7 +454,7 @@ describe('config file operations', () => {
     it('should throw error for non-existent file', async () => {
       await assert.rejects(async () => {
         await validateConfigFile('/nonexistent/path.js');
-      }, /Configuration file validation failed/);
+      }, /Configuration file not found/);
     });
   });
 
