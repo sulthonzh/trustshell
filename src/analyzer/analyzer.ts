@@ -152,13 +152,14 @@ function validateSyntax(code: string, language: string): void {
       // Note: undefined variables and other style issues are handled in checkJavaScriptQuality, not here
       break;
       
-    case 'python':
+    case 'python': {
       // Check for basic Python syntax issues
       const pyIssues = checkPythonSyntax(code);
       if (pyIssues.length > 0) {
         throw new Error(pyIssues[0]);
       }
       break;
+    }
       
     case 'go':
     case 'rust':
