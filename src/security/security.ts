@@ -180,6 +180,16 @@ async function checkJavaScriptSecurity(code: string, vulnerabilities: any[]): Pr
       description: 'innerHTML can lead to XSS vulnerabilities'
     });
   }
+
+  // Check for React's dangerouslySetInnerHTML
+  if (code.includes('dangerouslySetInnerHTML')) {
+    vulnerabilities.push({
+      type: 'dangerously-set-inner-html',
+      severity: 'high',
+      line: findLineNumber(code, 'dangerouslySetInnerHTML'),
+      description: 'React dangerouslySetInnerHTML bypasses XSS protection and should be used with extreme caution'
+    });
+  }
   
   // Check for regex with potentially catastrophic backtracking
   const regexPattern = /\/[^\/]*\([^)]*\)[^\/]*\{[^}]*\*\s*\}/g;
@@ -233,6 +243,20 @@ async function checkJavaScriptSecurity(code: string, vulnerabilities: any[]): Pr
       description: 'CORS misconfiguration allowing any origin (*)'
     });
   }
+
+  // Check for SQL injection in JavaScript
+  if (code.match(/\b(?:execute|query|raw)\s*\(.*\+/g) || 
+      code.match(/['"]SELECT.*['"]\s*\+/g) ||
+      code.match(/\bINSERT\s+INTO.*['"]\s*\+/gi) ||
+      code.match(/\bUPDATE.*SET.*['"]\s*\+/gi) ||
+      code.match(/\bDELETE\s+FROM.*['"]\s*\+/gi)) {
+    vulnerabilities.push({
+      type: 'sql-injection',
+      severity: 'high',
+      line: findLineNumber(code, code.match(/['"]SELECT.*['"]\s*\+/)?.[0] || 'execute'),
+      description: 'Potential SQL injection vulnerability through string concatenation'
+    });
+  }
 }
 
 async function checkPythonSecurity(code: string, vulnerabilities: any[]): Promise<void> {
@@ -275,13 +299,23 @@ async function checkPythonSecurity(code: string, vulnerabilities: any[]): Promis
     });
   }
   
-  // Check for SQL injection
-  if (code.includes('+') && code.includes('execute') || code.includes('query')) {
+  // Check for code injection in exec
+  if (code.includes('exec(') && !code.includes('safe')) {
     vulnerabilities.push({
-      type: 'sql-injection',
-      severity: 'high',
-      line: findLineNumber(code, 'execute'),
-      description: 'Potential SQL injection vulnerability'
+      type: 'code-injection',
+      severity: 'critical',
+      line: findLineNumber(code, 'exec('),
+      description: 'Potential code injection through exec()'
+    });
+  }
+
+  // Check for eval usage (Python)
+  if (code.includes('eval(')) {
+    vulnerabilities.push({
+      type: 'eval-usage',
+      severity: 'critical',
+      line: findLineNumber(code, 'eval('),
+      description: 'Python eval() can execute arbitrary code and is unsafe'
     });
   }
   
@@ -472,11 +506,11 @@ async function checkGenericSecurity(code: string, vulnerabilities: any[], langua
   
   // Check for hardcoded secrets
   const secretPatterns = [
-    /password\s*=\s*['"][^'"]{8,}['"]/i,
-    /secret\s*=\s*['"][^'"]{8,}['"]/i,
-    /token\s*=\s*['"][^'"]{16,}['"]/i,
-    /api[_-]?key\s*=\s*['"][^'"]{16,}['"]/i,
-    /private[_-]?key\s*=\s*['"][^'"]{32,}['"]/i
+    /password\s*=\s*['"][^'"]{4,}['"]/i,
+    /secret\s*=\s*['"][^'"]{4,}['"]/i,
+    /token\s*=\s*['"][^'"]{8,}['"]/i,
+    /api[_-]?key\s*=\s*['"][^'"]{8,}['"]/i,
+    /private[_-]?key\s*=\s*['"][^'"]{16,}['"]/i
   ];
   
   const lines = code.split('\n');
@@ -551,7 +585,8 @@ async function checkCommonSecurityPatterns(code: string, vulnerabilities: any[])
   // Common security patterns across all languages
   
   // Check for hardcoded credentials in string literals
-  const credentialPattern = /["`](?:password|secret|key|token|api[_-]?key|private[_-]?key|auth[_-]?token|access[_-]?token)["`]\s*[:=]\s*["`][^"`]{8,}["`]/gi;
+  // Pattern 1: "password" = "value" style (strings with password/secret/etc)
+  const credentialPattern = /["`](?:password|secret|key|token|api[_-]?key|private[_-]?key|auth[_-]?token|access[_-]?token)["`]\s*[:=]\s*["`][^"`]{4,}["`]/gi;
   const matches = code.match(credentialPattern);
   
   if (matches) {
@@ -564,6 +599,25 @@ async function checkCommonSecurityPatterns(code: string, vulnerabilities: any[])
       });
     });
   }
+  
+  // Pattern 2: const password = "value" or API_KEY = "value" style
+  const linePattern = /(?:const|let|var)?\s*(?:password|secret|key|token|api[_-]?key|api[_-]?secret|private[_-]?key|auth[_-]?token|access[_-]?token)\s*=\s*["'][^"']{4,}["']/gi;
+  const lines = code.split('\n');
+  lines.forEach((line, index) => {
+    const match = line.match(linePattern);
+    if (match) {
+      // Determine which keyword matched
+      const keywordMatch = line.match(/(password|secret|key|token|api[_-]?key|api[_-]?secret|private[_-]?key|auth[_-]?token|access[_-]?token)/i);
+      const keyword = keywordMatch && keywordMatch[1] ? keywordMatch[1].toLowerCase() : 'credential';
+      
+      vulnerabilities.push({
+        type: 'hardcoded-credential',
+        severity: 'high',
+        line: index + 1,
+        description: `Hardcoded ${keyword} detected in variable assignment`
+      });
+    }
+  });
   
   // Check for dangerous input validation
   if (code.includes('input') && !code.includes('validate') && !code.includes('sanitize')) {
