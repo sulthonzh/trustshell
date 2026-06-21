@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ES2020",
     "module": "ESNext",
     "lib": ["ES2020"],
@@ -25,11 +26,7 @@
     "allowUnreachableCode": false,
     "exactOptionalPropertyTypes": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node",
-    "baseUrl": ".",
-    "paths": {
-      "*": ["node_modules/*"]
-    }
+    "moduleResolution": "node16",
   },
   "include": [
     "src/**/*"
