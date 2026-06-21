@@ -84,27 +84,30 @@ export async function loadConfig(configPath?: string): Promise<TrustshellConfig>
   
   // Load from config file if provided (throw on error for explicit config)
   if (configPath) {
-    const fileConfig = await loadConfigFile(configPath);
-    config = mergeConfig(config, fileConfig);
-    logger.debug(`Loaded configuration from: ${configPath}`);
-  }
-  
-  // Load from default config file if it exists
-  const defaultConfigPath = join(process.cwd(), 'trustshell.config.js');
-  if (existsSync(defaultConfigPath)) {
     try {
-      const fileConfig = await loadConfigFile(defaultConfigPath);
+      const fileConfig = await loadConfigFile(configPath);
       config = mergeConfig(config, fileConfig);
-      logger.debug('Loaded default configuration file');
+      logger.debug(`Loaded configuration from: ${configPath}`);
     } catch (error) {
-      logger.warn(`Failed to load default config file: ${error instanceof Error ? error.message : String(error)}`);
+      // Fall back to default config for invalid or non-existent files
+      logger.warn(`Failed to load config from ${configPath}, using defaults: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  } else {
+    // Load from default config file if it exists
+    const defaultConfigPath = join(process.cwd(), 'trustshell.config.js');
+    if (existsSync(defaultConfigPath)) {
+      try {
+        const fileConfig = await loadConfigFile(defaultConfigPath);
+        config = mergeConfig(config, fileConfig);
+        logger.debug('Loaded default configuration file');
+      } catch (error) {
+        logger.warn(`Failed to load default config file: ${error instanceof Error ? error.message : String(error)}`);
+      }
     }
   }
   
-  // Override with environment variables (only if not explicitly set via configPath)
-  if (!configPath) {
-    config = overrideWithEnvVars(config);
-  }
+  // Override with environment variables (applies last to override all sources)
+  config = overrideWithEnvVars(config);
   
   logger.debug('Final configuration loaded');
   
@@ -276,7 +279,7 @@ export function overrideWithEnvVars(config: TrustshellConfig): TrustshellConfig 
 
 // Utility function to save configuration
 export async function saveConfig(config: TrustshellConfig, outputPath: string): Promise<void> {
-  const configContent = `module.exports = ${JSON.stringify(config, null, 2)};`;
+  const configContent = `export default ${JSON.stringify(config, null, 2)};`;
   
   try {
     await writeFile(outputPath, configContent, 'utf8');
@@ -288,8 +291,12 @@ export async function saveConfig(config: TrustshellConfig, outputPath: string): 
 
 // Utility function to validate configuration file
 export async function validateConfigFile(configPath: string): Promise<void> {
+  if (!existsSync(configPath)) {
+    throw new Error(`Configuration file not found: ${configPath}`);
+  }
+  
   try {
-    await loadConfig(configPath);
+    await loadConfigFile(configPath);
     logger.info(`Configuration file is valid: ${configPath}`);
   } catch (error) {
     throw new Error(`Configuration file validation failed: ${error instanceof Error ? error.message : String(error)}`);

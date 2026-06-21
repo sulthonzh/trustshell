@@ -394,7 +394,7 @@ export function generateHtmlReport(
 </body>
 </html>`;
   
-  return html;
+  return html.startsWith('\n') ? html.slice(1) : html;
 }
 
 function generateMetricsHtml(result: VerificationResult): string {
@@ -565,7 +565,7 @@ export function generateXmlReport(
   }
   xml += `  </security>\n`;
   
-  if (config.includeRecommendations && result.recommendations.length > 0) {
+  if (config.includeRecommendations) {
     xml += `  <recommendations>\n`;
     result.recommendations.forEach(rec => {
       xml += `    <recommendation>${escapeXml(rec)}</recommendation>\n`;
@@ -736,8 +736,7 @@ function escapeXml(text: string): string {
 export function validateReportOutput(outputPath: string, format: string): boolean {
   // This would validate that the report was generated correctly
   // For now, just check if file exists
-  const fs = require('fs');
-  return fs.existsSync(outputPath);
+  return existsSync(outputPath);
 }
 
 // Generate multiple report formats

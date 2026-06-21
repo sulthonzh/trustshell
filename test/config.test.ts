@@ -394,7 +394,7 @@ describe('config file operations', () => {
       const testConfig = DEFAULT_CONFIG;
       await saveConfig(testConfig, testConfigPath);
       const content = readFileSync(testConfigPath, 'utf8');
-      assert(content.startsWith('module.exports ='));
+      assert(content.startsWith('export default'));
       assert(content.endsWith(';'));
     });
 
@@ -418,7 +418,7 @@ describe('config file operations', () => {
       };
       await saveConfig(customConfig, testConfigPath);
       const content = readFileSync(testConfigPath, 'utf8');
-      const jsonStr = content.replace('module.exports = ', '').replace(/;$/, '');
+      const jsonStr = content.replace('export default ', '').replace(/;$/, '');
       const loadedConfig = JSON.parse(jsonStr);
       assert.strictEqual(loadedConfig.depth, 'deep');
       assert.deepStrictEqual(loadedConfig.testFrameworks, ['mocha']);
@@ -436,7 +436,7 @@ describe('config file operations', () => {
   describe('validateConfigFile', () => {
     it('should validate a valid configuration file', async () => {
       const validConfig = DEFAULT_CONFIG;
-      saveConfig(validConfig, testConfigPath);
+      await saveConfig(validConfig, testConfigPath);
       assert.doesNotThrow(async () => await validateConfigFile(testConfigPath));
     });
 
@@ -445,7 +445,7 @@ describe('config file operations', () => {
         ...DEFAULT_CONFIG,
         depth: 'invalid' as any
       };
-      saveConfig(invalidConfig, invalidConfigPath);
+      await saveConfig(invalidConfig, invalidConfigPath);
       await assert.rejects(async () => {
         await validateConfigFile(invalidConfigPath);
       }, /Configuration file validation failed/);
@@ -467,6 +467,7 @@ describe('config file operations', () => {
 
     it('should load configuration from provided path', async () => {
       const customConfig = {
+        ...DEFAULT_CONFIG,
         depth: 'comprehensive' as const,
         testFrameworks: ['mocha'],
         security: {
@@ -483,7 +484,7 @@ describe('config file operations', () => {
           javascript: { testFramework: 'mocha', linting: true }
         }
       };
-      saveConfig(customConfig, testConfigPath);
+      await saveConfig(customConfig, testConfigPath);
       const config = await loadConfig(testConfigPath);
       assert.strictEqual(config.depth, 'comprehensive');
       assert.deepStrictEqual(config.testFrameworks, ['mocha']);
@@ -491,7 +492,10 @@ describe('config file operations', () => {
     });
 
     it('should handle invalid config file gracefully', async () => {
-      saveConfig({ depth: 'invalid' as any, testFrameworks: [], security: { enabled: false, threshold: 0, rules: [] }, performance: { enabled: false, maxExecutionTime: 0, memoryLimit: '0MB' }, languages: {} }, invalidConfigPath);
+      await saveConfig({ 
+        ...DEFAULT_CONFIG,
+        depth: 'invalid' as any
+      }, invalidConfigPath);
       const config = await loadConfig(invalidConfigPath);
       // Should fall back to default config
       assert.strictEqual(config.depth, DEFAULT_CONFIG.depth);
@@ -514,7 +518,12 @@ describe('config file operations', () => {
     });
 
     it('should merge file config with environment overrides', async () => {
+      // Clear any existing env vars
+      delete process.env.TRUSTSHELL_DEPTH;
+      delete process.env.TRUSTSHELL_SECURITY_THRESHOLD;
+      
       const customConfig = {
+        ...DEFAULT_CONFIG,
         depth: 'comprehensive' as const,
         testFrameworks: ['mocha'],
         security: {

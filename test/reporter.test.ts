@@ -15,11 +15,11 @@ import {
   generateXmlReport,
   generateConsoleReport,
   DEFAULT_REPORT_CONFIG,
-  ReportConfig,
   validateReportOutput,
   generateMultipleReports
 } from '../dist/reporter/reporter.js';
-import { VerificationResult } from '../dist/verifier/verifier.js';
+import type { VerificationResult } from '../dist/verifier/verifier.js';
+import type { ReportConfig } from '../dist/reporter/reporter.js';
 
 describe('reporter module', () => {
   let testDir: string;
@@ -689,7 +689,7 @@ describe('reporter module', () => {
       await generateMultipleReports(result, testDir, ['json', 'html', 'markdown']);
       assert(readFileSync(join(testDir, 'report.json'), 'utf8').length > 0);
       assert(readFileSync(join(testDir, 'report.html'), 'utf8').length > 0);
-      assert(readFileSync(join(testDir, 'report.md'), 'utf8').length > 0);
+      assert(readFileSync(join(testDir, 'report.markdown'), 'utf8').length > 0);
       teardown();
     });
 
@@ -709,7 +709,7 @@ describe('reporter module', () => {
       // Default formats are ['json', 'html', 'markdown']
       assert(readFileSync(join(testDir, 'report.json'), 'utf8').length > 0);
       assert(readFileSync(join(testDir, 'report.html'), 'utf8').length > 0);
-      assert(readFileSync(join(testDir, 'report.md'), 'utf8').length > 0);
+      assert(readFileSync(join(testDir, 'report.markdown'), 'utf8').length > 0);
       teardown();
     });
 
@@ -771,7 +771,9 @@ describe('reporter module', () => {
 
     it('should handle result without line numbers', () => {
       const result = getMockVerificationResult();
-      result.findings.codeQuality.issues[0].line = undefined;
+      // Remove all line numbers from issues and vulnerabilities
+      result.findings.codeQuality.issues.forEach(issue => { issue.line = undefined; });
+      result.findings.security.vulnerabilities.forEach(vuln => { vuln.line = undefined; });
       const xml = generateXmlReport(result);
       assert(!xml.includes('line='));
     });
