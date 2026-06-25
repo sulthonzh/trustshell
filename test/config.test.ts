@@ -389,9 +389,6 @@ describe('config file operations', () => {
     }
   };
 
-  const before = cleanup;
-  const after = cleanup;
-
   // Run cleanup before and after each test
   beforeEach(() => cleanup());
   afterEach(() => cleanup());
