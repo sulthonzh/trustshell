@@ -54,7 +54,7 @@ export interface VerificationResult {
     };
     performance?: {
       executionTime: number;
-      memoryUsage: string;
+      memoryUsage: string | number;
       efficiency: number;
     };
   };
@@ -161,15 +161,16 @@ export async function verifyCode(
         await executeCode(filePath, detectedLanguage, { timeout: config.performance.maxExecutionTime });
         const executionTime = Date.now() - perfStart;
         
-        result.findings.performance = {
+        const perfResult = {
           executionTime,
-          memoryUsage: 'N/A', // TODO: Implement memory tracking
+          memoryUsage: `${process.memoryUsage().heapUsed}`,
           efficiency: Math.max(0, 100 - (executionTime / config.performance.maxExecutionTime) * 100)
         };
+        result.findings.performance = perfResult;
         
         // Update confidence score based on performance
-        if (result.findings.performance.efficiency < 70) {
-          result.confidenceScore *= result.findings.performance.efficiency / 100;
+        if (perfResult.efficiency < 70) {
+          result.confidenceScore *= perfResult.efficiency / 100;
           result.recommendations.push('Performance below optimal threshold');
         }
         

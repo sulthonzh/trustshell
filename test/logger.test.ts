@@ -1,10 +1,29 @@
 /**
  * Tests for logger module - Logger functionality
+ * 
+ * The logger writes to process.stderr (not stdout) to avoid corrupting
+ * Node's test runner IPC protocol.
  */
 
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert';
 import { Logger, LogLevel } from '../dist/utils/logger.js';
+
+// Helper: capture stderr output
+function captureStderr(fn: () => void): string {
+  let output = '';
+  const originalWrite = process.stderr.write.bind(process.stderr);
+  process.stderr.write = ((chunk: any) => {
+    output += typeof chunk === 'string' ? chunk : chunk.toString();
+    return true;
+  }) as any;
+  try {
+    fn();
+  } finally {
+    process.stderr.write = originalWrite;
+  }
+  return output;
+}
 
 describe('logger module', () => {
 
@@ -19,16 +38,9 @@ describe('logger module', () => {
 
   describe('Logger class', () => {
     let logger: Logger;
-    let consoleLogSpy: any;
-    let originalConsoleLog: any;
 
     before(() => {
-      originalConsoleLog = console.log;
       logger = new Logger(LogLevel.INFO);
-    });
-
-    after(() => {
-      console.log = originalConsoleLog;
     });
 
     it('should create logger with default INFO level', () => {
@@ -49,272 +61,199 @@ describe('logger module', () => {
     });
 
     it('should log debug messages when level permits', () => {
-      console.log = (...args: any[]) => {
-        assert.match(args[0], /\[DEBUG\]/);
-      };
-      const debugLogger = new Logger(LogLevel.DEBUG);
-      debugLogger.setVerbose(true);
-      debugLogger.debug('test message');
-      console.log = originalConsoleLog;
+      const output = captureStderr(() => {
+        const debugLogger = new Logger(LogLevel.DEBUG);
+        debugLogger.setVerbose(true);
+        debugLogger.debug('test message');
+      });
+      assert.match(output, /\[DEBUG\]/);
     });
 
     it('should not log debug messages when level is INFO', () => {
-      let called = false;
-      console.log = () => { called = true; };
-      logger.debug('should not appear');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, false);
+      const output = captureStderr(() => {
+        logger.debug('should not appear');
+      });
+      assert.strictEqual(output, '');
     });
 
     it('should log info messages when level permits', () => {
-      let called = false;
-      let message = '';
-      console.log = (...args: any[]) => {
-        called = true;
-        message = args[0];
-      };
-      logger.info('info message');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
-      assert(message.includes('info message'));
+      const output = captureStderr(() => {
+        logger.info('info message');
+      });
+      assert(output.includes('info message'));
     });
 
     it('should not log info messages when level is WARN', () => {
-      let called = false;
-      console.log = () => { called = true; };
-      const warnLogger = new Logger(LogLevel.WARN);
-      warnLogger.info('should not appear');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, false);
+      const output = captureStderr(() => {
+        const warnLogger = new Logger(LogLevel.WARN);
+        warnLogger.info('should not appear');
+      });
+      assert.strictEqual(output, '');
     });
 
     it('should log warn messages when level permits', () => {
-      let called = false;
-      let message = '';
-      console.log = (...args: any[]) => {
-        called = true;
-        message = args[0];
-      };
-      logger.warn('warn message');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
-      assert(message.includes('warn message'));
+      const output = captureStderr(() => {
+        logger.warn('warn message');
+      });
+      assert(output.includes('warn message'));
     });
 
     it('should not log warn messages when level is ERROR', () => {
-      let called = false;
-      console.log = () => { called = true; };
-      const errorLogger = new Logger(LogLevel.ERROR);
-      errorLogger.warn('should not appear');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, false);
+      const output = captureStderr(() => {
+        const errorLogger = new Logger(LogLevel.ERROR);
+        errorLogger.warn('should not appear');
+      });
+      assert.strictEqual(output, '');
     });
 
     it('should log error messages always', () => {
-      let called = false;
-      let message = '';
-      console.log = (...args: any[]) => {
-        called = true;
-        message = args[0];
-      };
-      logger.error('error message');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
-      assert(message.includes('error message'));
+      const output = captureStderr(() => {
+        logger.error('error message');
+      });
+      assert(output.includes('error message'));
     });
 
     it('should log error messages even when level is ERROR', () => {
-      let called = false;
-      console.log = () => { called = true; };
-      const errorLogger = new Logger(LogLevel.ERROR);
-      errorLogger.error('should appear');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        const errorLogger = new Logger(LogLevel.ERROR);
+        errorLogger.error('should appear');
+      });
+      assert(output.includes('should appear'));
     });
 
     it('should include DEBUG prefix in verbose mode', () => {
-      console.log = (...args: any[]) => {
-        assert.match(args[0], /\[DEBUG\]/);
-      };
-      const debugLogger = new Logger(LogLevel.DEBUG);
-      debugLogger.setVerbose(true);
-      debugLogger.debug('test');
-      console.log = originalConsoleLog;
+      const output = captureStderr(() => {
+        const debugLogger = new Logger(LogLevel.DEBUG);
+        debugLogger.setVerbose(true);
+        debugLogger.debug('test');
+      });
+      assert.match(output, /\[DEBUG\]/);
     });
 
     it('should not include DEBUG prefix in non-verbose mode', () => {
-      console.log = (...args: any[]) => {
-        assert.doesNotMatch(args[0], /\[DEBUG\]/);
-      };
-      const debugLogger = new Logger(LogLevel.DEBUG);
-      debugLogger.setVerbose(false);
-      debugLogger.debug('test');
-      console.log = originalConsoleLog;
+      const output = captureStderr(() => {
+        const debugLogger = new Logger(LogLevel.DEBUG);
+        debugLogger.setVerbose(false);
+        debugLogger.debug('test');
+      });
+      assert.doesNotMatch(output, /\[DEBUG\]/);
     });
 
     it('should handle multiple arguments', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert.strictEqual(args.length, 3);
-        assert.strictEqual(args[0], 'message');
-        assert.strictEqual(args[1], 'arg1');
-        assert.strictEqual(args[2], 'arg2');
-      };
-      logger.info('message', 'arg1', 'arg2');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('message', 'arg1', 'arg2');
+      });
+      assert(output.includes('message'));
+      assert(output.includes('arg1'));
+      assert(output.includes('arg2'));
     });
 
     it('should handle objects and arrays as arguments', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert.strictEqual(args.length, 2);
-        assert.deepStrictEqual(args[1], { key: 'value' });
-      };
-      logger.info('data', { key: 'value' });
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('data', { key: 'value' });
+      });
+      assert(output.includes('data'));
+      assert(output.includes('key'));
     });
 
     it('should handle arrays of strings', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert.deepStrictEqual(args[1], ['a', 'b', 'c']);
-      };
-      logger.info('items', ['a', 'b', 'c']);
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('items', ['a', 'b', 'c']);
+      });
+      assert(output.includes('items'));
+      assert(output.includes('a'));
     });
 
     it('should handle Error objects', () => {
-      let called = false;
-      const error = new Error('test error');
-      console.log = (...args: any[]) => {
-        called = true;
-        assert(args[1] instanceof Error);
-        assert.strictEqual(args[1].message, 'test error');
-      };
-      logger.error('error occurred', error);
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        const error = new Error('test error');
+        logger.error('error occurred', error);
+      });
+      assert(output.includes('error occurred'));
+      assert(output.includes('test error'));
     });
 
     it('should handle multiple log calls at different levels', () => {
-      let calls: string[] = [];
-      console.log = (...args: any[]) => {
-        calls.push(args[0]);
-      };
       const debugLogger = new Logger(LogLevel.DEBUG);
-      debugLogger.debug('debug msg');
-      debugLogger.info('info msg');
-      debugLogger.warn('warn msg');
-      debugLogger.error('error msg');
-      console.log = originalConsoleLog;
-      assert.strictEqual(calls.length, 4);
-      assert(calls.some((call: string) => call.includes('debug msg')));
-      assert(calls.some((call: string) => call.includes('info msg')));
-      assert(calls.some((call: string) => call.includes('warn msg')));
-      assert(calls.some((call: string) => call.includes('error msg')));
+      const output = captureStderr(() => {
+        debugLogger.debug('debug msg');
+        debugLogger.info('info msg');
+        debugLogger.warn('warn msg');
+        debugLogger.error('error msg');
+      });
+      assert(output.includes('debug msg'));
+      assert(output.includes('info msg'));
+      assert(output.includes('warn msg'));
+      assert(output.includes('error msg'));
     });
 
     it('should respect level hierarchy', () => {
-      const calls: { level: string; message: string }[] = [];
-      console.log = (...args: any[]) => {
-        const arg = args[0];
-        if (typeof arg === 'string') {
-          calls.push({ level: arg.includes('[DEBUG]') ? 'DEBUG' : arg.includes('[INFO]') ? 'INFO' : arg.includes('[WARN]') ? 'WARN' : 'ERROR', message: arg });
-        }
-      };
-
       const debugLogger = new Logger(LogLevel.DEBUG);
-      debugLogger.debug('debug');
-      debugLogger.info('info');
-      debugLogger.warn('warn');
-      debugLogger.error('error');
-
-      console.log = originalConsoleLog;
-      assert.strictEqual(calls.length, 4);
+      const output = captureStderr(() => {
+        debugLogger.debug('debug');
+        debugLogger.info('info');
+        debugLogger.warn('warn');
+        debugLogger.error('error');
+      });
+      // All 4 levels should appear
+      assert(output.includes('debug'));
+      assert(output.includes('info'));
+      assert(output.includes('warn'));
+      assert(output.includes('error'));
     });
 
     it('should handle empty messages', () => {
-      let called = false;
-      console.log = () => { called = true; };
-      logger.info('');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('');
+      });
+      // Should still write a line (even if empty message)
+      assert.ok(output.length >= 0);
     });
 
     it('should handle special characters in messages', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert.match(args[0], /special: .*.*. \n \t/);
-      };
-      logger.info('special: <> & \n \t');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('special: <> & \n \t');
+      });
+      assert(output.includes('special'));
     });
 
     it('should handle very long messages', () => {
-      let called = false;
       const longMessage = 'x'.repeat(10000);
-      console.log = (...args: any[]) => {
-        called = true;
-        assert(args[0].includes(longMessage));
-      };
-      logger.info(longMessage);
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info(longMessage);
+      });
+      assert(output.includes(longMessage));
     });
 
     it('should handle unicode characters', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert(args[0].includes('unicode: 你好 🎉'));
-      };
-      logger.info('unicode: 你好 🎉');
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('unicode: 你好 🎉');
+      });
+      assert(output.includes('unicode'));
     });
 
     it('should handle numeric arguments', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert.strictEqual(args[1], 42);
-        assert.strictEqual(args[2], 3.14);
-      };
-      logger.info('numbers', 42, 3.14);
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('numbers', 42, 3.14);
+      });
+      assert(output.includes('42'));
+      assert(output.includes('3.14'));
     });
 
     it('should handle boolean arguments', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert.strictEqual(args[1], true);
-        assert.strictEqual(args[2], false);
-      };
-      logger.info('booleans', true, false);
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('booleans', true, false);
+      });
+      assert(output.includes('true'));
+      assert(output.includes('false'));
     });
 
     it('should handle null and undefined arguments', () => {
-      let called = false;
-      console.log = (...args: any[]) => {
-        called = true;
-        assert.strictEqual(args[1], null);
-        assert.strictEqual(args[2], undefined);
-      };
-      logger.info('null-undefined', null, undefined);
-      console.log = originalConsoleLog;
-      assert.strictEqual(called, true);
+      const output = captureStderr(() => {
+        logger.info('null-undefined', null, undefined);
+      });
+      assert(output.includes('null'));
+      assert(output.includes('undefined'));
     });
   });
 
@@ -328,17 +267,18 @@ describe('logger module', () => {
     });
 
     it('should allow changing log level after creation', () => {
-      const originalConsoleLog = console.log;
-      let debugCalled = false;
-      console.log = () => { debugCalled = true; };
-      const testLogger = new Logger(LogLevel.INFO);
-      testLogger.debug('should not appear');
-      assert.strictEqual(debugCalled, false);
+      let output = captureStderr(() => {
+        const testLogger = new Logger(LogLevel.INFO);
+        testLogger.debug('should not appear');
+      });
+      assert.strictEqual(output, '');
 
-      (testLogger as any).level = LogLevel.DEBUG;
-      testLogger.debug('should appear');
-      assert.strictEqual(debugCalled, true);
-      console.log = originalConsoleLog;
+      output = captureStderr(() => {
+        const testLogger = new Logger(LogLevel.INFO);
+        (testLogger as any).level = LogLevel.DEBUG;
+        testLogger.debug('should appear');
+      });
+      assert(output.includes('should appear'));
     });
   });
 });

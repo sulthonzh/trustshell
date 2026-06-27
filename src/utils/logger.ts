@@ -5,6 +5,16 @@ export enum LogLevel {
   ERROR = 3
 }
 
+function formatArg(arg: any): string {
+  if (arg === null) return 'null';
+  if (arg === undefined) return 'undefined';
+  if (arg instanceof Error) return arg.message;
+  if (typeof arg === 'object') {
+    try { return JSON.stringify(arg); } catch { return String(arg); }
+  }
+  return String(arg);
+}
+
 export class Logger {
   private level: LogLevel;
   private isVerbose: boolean = false;
@@ -20,32 +30,34 @@ export class Logger {
   debug(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.DEBUG) {
       const prefix = this.isVerbose ? '[DEBUG]' : '';
-      console.log(`${prefix}${prefix ? ' ' : ''}${message}`, ...args);
+      process.stderr.write(`${prefix}${prefix ? ' ' : ''}${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }
   }
 
   info(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.INFO) {
       const prefix = this.isVerbose ? '[INFO]' : '';
-      console.log(`${prefix}${prefix ? ' ' : ''}${message}`, ...args);
+      process.stderr.write(`${prefix}${prefix ? ' ' : ''}${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }
   }
 
   warn(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.WARN) {
-      console.log(`⚠️  ${message}`, ...args);
+      process.stderr.write(`⚠️  ${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }
   }
 
   error(message: string, ...args: any[]): void {
     if (this.level <= LogLevel.ERROR) {
-      console.log(`❌ ${message}`, ...args);
+      process.stderr.write(`❌ ${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }
   }
 }
 
 // Export singleton instance
-export const logger = new Logger();
+// Suppress all logging during tests to avoid corrupting Node's test runner IPC
+const isTest = process.env.NODE_ENV === 'test' || !!process.env.NODE_TEST_CONTEXT;
+export const logger = new Logger(isTest ? LogLevel.ERROR : LogLevel.INFO);
 
 // Configure logging level from environment
 if (process.env.NODE_ENV === 'development') {

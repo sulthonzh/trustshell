@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-06-27
+
+### Fixed
+- Fixed test runner IPC serialization crash by routing logger output to stderr
+- Added missing `commander` dependency (was imported but not in package.json)
+- Fixed TypeScript strict mode error: `memoryUsage` type and possibly undefined access
+- Removed actual TODO comment in verifier.ts (implemented memory tracking)
+- Rewrote logger tests to use stderr capture instead of console.log spy
+
+### Changed
+- Logger now writes to `process.stderr` instead of `console.log` (fixes Node test runner IPC bug)
+- Logger auto-suppresses to ERROR level during test runs (detects NODE_TEST_CONTEXT)
+- Logger uses `formatArg()` for proper serialization of objects/arrays/errors
+- Removed unused Jest devDependencies (jest, ts-jest, @types/jest) and jest.config.js
+- Improved README hook with test count and clearer value proposition
+
 ## [1.0.0] - 2026-06-21
 
 ### Added

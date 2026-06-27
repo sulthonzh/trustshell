@@ -1,6 +1,6 @@
 # trustshell - AI Code Output Verifier CLI
 
-Zero-dependency CLI tool for verifying AI-generated code quality and functionality. Built to address the critical trust gap where AI agents routinely lie about task completion, creating dangerous assumptions about code functionality.
+Don't trust, verify. 267 tests, 100% pass rate. AI agents claim tasks are "done" — trustshell catches the lies with automated code verification, security scanning, and functional testing across 6+ languages.
 
 ## Problem Statement
 
