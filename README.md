@@ -243,6 +243,22 @@ Trustshell provides detailed verification reports:
 }
 ```
 
+## Comparison: trustshell vs Alternatives
+
+| Feature | trustshell | GitHub CodeQL | SonarQube | Snyk Code |
+|---|---|---|---|---|
+| **AI-code focused** | ✅ Built for AI output verification | ❌ General SAST | ❌ General quality | ❌ Security only |
+| **Zero runtime deps** | ✅ 1 dependency (commander) | ❌ Heavy agent | ❌ Server + DB | ❌ Cloud-only |
+| **Multi-language** | ✅ 6+ (JS/TS/Python/Go/Rust/Java) | ✅ 10+ | ✅ 25+ | ✅ 7+ |
+| **Functional testing** | ✅ Runs actual tests | ❌ Static analysis | ❌ Static analysis | ❌ Static analysis |
+| **Confidence scoring** | ✅ 0-100 score with findings | ❌ Pass/fail | ⚠️ Rating only | ⚠️ Severity only |
+| **CLI-first** | ✅ Single command | ❌ GitHub Action/web | ❌ IDE/server | ❌ IDE/web |
+| **Offline** | ✅ Fully local | ❌ Needs GitHub | ❌ Needs server | ❌ Cloud API |
+| **Free & open source** | ✅ MIT | ✅ Free tier | ⚠️ Paid tiers | ⚠️ Paid tiers |
+| **CI/CD exit codes** | ✅ `--strict` flag | ✅ `--set-exit-code` | ✅ Quality gate | ✅ `--severity-threshold` |
+
+**trustshell's unique edge:** It's the only tool that *runs AI-generated code's own tests* and reports whether the code actually works — not just whether it looks clean. Static analyzers tell you the code *might* work; trustshell tells you it *does* work.
+
 ## Development
 
 ### Building
@@ -252,7 +268,8 @@ npm run build
 
 ### Testing
 ```bash
-npm test
+npm test              # 267 tests
+npm run test:coverage # with c8 coverage report
 ```
 
 ### Development Mode
