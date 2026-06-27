@@ -22,6 +22,7 @@ export interface VerificationConfig {
   benchmark?: boolean;
   verbose?: boolean;
   recursive?: boolean;
+  [key: string]: unknown;
 }
 
 export interface VerificationResult {

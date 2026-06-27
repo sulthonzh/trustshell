@@ -2,6 +2,13 @@ import { readFileSync } from 'fs';
 import { spawn } from 'child_process';
 import { logger } from '../utils/logger.js';
 
+
+interface TesterConfig {
+  testFrameworks: string[];
+  performance?: { maxExecutionTime?: number };
+  [key: string]: unknown;
+}
+
 export interface TestConfig {
   framework: string;
   files: string[];
@@ -26,7 +33,7 @@ export interface TestDetail {
 export async function runTests(
   filePath: string, 
   language: string, 
-  config: any
+  config: TesterConfig
 ): Promise<TestResult> {
   logger.debug(`Running tests for: ${filePath} (${language})`);
   
@@ -58,7 +65,7 @@ export async function runTests(
 async function executeTests(
   filePath: string, 
   language: string, 
-  config: any
+  config: TesterConfig
 ): Promise<TestResult> {
   const testFiles = findTestFiles(filePath, language);
   
@@ -90,10 +97,10 @@ async function executeTests(
 
 function findTestFiles(sourceFile: string, language: string): string[] {
   const testFiles: string[] = [];
-  const path = require('path');
+  const _path = require('path');
   
   // Common test file patterns
-  const patterns = [
+  const _patterns = [
     'test/**/*.' + language,
     'tests/**/*.' + language,
     '**/*.test.' + language,
@@ -122,7 +129,6 @@ async function generateAndRunBasicTests(
   // Generate basic tests based on code analysis
   if (language === 'javascript' || language === 'typescript') {
     // Check for common function patterns
-    const functionMatches = code.match(/function\s+\w+\s*\([^)]*\)\s*{/g);
     const arrowFunctionMatches = code.match(/\w+\s*=\s*\([^)]*\)\s*=>/g);
     const asyncFunctionMatches = code.match(/async\s+function\s+\w+\s*\([^)]*\)\s*{/g);
     
@@ -209,7 +215,7 @@ function getDefaultFramework(language: string): string {
   return frameworkMap[language] || 'generic';
 }
 
-async function runJestTests(testFiles: string[], config: any): Promise<TestResult> {
+async function runJestTests(testFiles: string[], config: TesterConfig): Promise<TestResult> {
   logger.debug('Running Jest tests');
   
   return new Promise((resolve, reject) => {
@@ -218,14 +224,14 @@ async function runJestTests(testFiles: string[], config: any): Promise<TestResul
     });
     
     let output = '';
-    let error = '';
+    let _error = '';
     
     jestProcess.stdout?.on('data', (data) => {
       output += data.toString();
     });
     
     jestProcess.stderr?.on('data', (data) => {
-      error += data.toString();
+      _error += data.toString();
     });
     
     jestProcess.on('close', (code) => {
@@ -245,7 +251,7 @@ async function runJestTests(testFiles: string[], config: any): Promise<TestResul
   });
 }
 
-async function runMochaTests(testFiles: string[], config: any): Promise<TestResult> {
+async function runMochaTests(testFiles: string[], config: TesterConfig): Promise<TestResult> {
   logger.debug('Running Mocha tests');
   
   return new Promise((resolve, reject) => {
@@ -254,14 +260,14 @@ async function runMochaTests(testFiles: string[], config: any): Promise<TestResu
     });
     
     let output = '';
-    let error = '';
+    let _error = '';
     
     mochaProcess.stdout?.on('data', (data) => {
       output += data.toString();
     });
     
     mochaProcess.stderr?.on('data', (data) => {
-      error += data.toString();
+      _error += data.toString();
     });
     
     mochaProcess.on('close', (code) => {
@@ -280,7 +286,7 @@ async function runMochaTests(testFiles: string[], config: any): Promise<TestResu
   });
 }
 
-async function runPytestTests(testFiles: string[], config: any): Promise<TestResult> {
+async function runPytestTests(testFiles: string[], config: TesterConfig): Promise<TestResult> {
   logger.debug('Running pytest tests');
   
   return new Promise((resolve, reject) => {
@@ -289,14 +295,14 @@ async function runPytestTests(testFiles: string[], config: any): Promise<TestRes
     });
     
     let output = '';
-    let error = '';
+    let _error = '';
     
     pytestProcess.stdout?.on('data', (data) => {
       output += data.toString();
     });
     
     pytestProcess.stderr?.on('data', (data) => {
-      error += data.toString();
+      _error += data.toString();
     });
     
     pytestProcess.on('close', (code) => {
@@ -315,7 +321,7 @@ async function runPytestTests(testFiles: string[], config: any): Promise<TestRes
   });
 }
 
-async function runGoTests(testFiles: string[], config: any): Promise<TestResult> {
+async function runGoTests(testFiles: string[], config: TesterConfig): Promise<TestResult> {
   logger.debug('Running Go tests');
   
   return new Promise((resolve, reject) => {
@@ -324,14 +330,14 @@ async function runGoTests(testFiles: string[], config: any): Promise<TestResult>
     });
     
     let output = '';
-    let error = '';
+    let _error = '';
     
     goProcess.stdout?.on('data', (data) => {
       output += data.toString();
     });
     
     goProcess.stderr?.on('data', (data) => {
-      error += data.toString();
+      _error += data.toString();
     });
     
     goProcess.on('close', (code) => {
@@ -350,7 +356,7 @@ async function runGoTests(testFiles: string[], config: any): Promise<TestResult>
   });
 }
 
-async function runCargoTests(testFiles: string[], config: any): Promise<TestResult> {
+async function runCargoTests(testFiles: string[], config: TesterConfig): Promise<TestResult> {
   logger.debug('Running Cargo tests');
   
   return new Promise((resolve, reject) => {
@@ -359,14 +365,14 @@ async function runCargoTests(testFiles: string[], config: any): Promise<TestResu
     });
     
     let output = '';
-    let error = '';
+    let _error = '';
     
     cargoProcess.stdout?.on('data', (data) => {
       output += data.toString();
     });
     
     cargoProcess.stderr?.on('data', (data) => {
-      error += data.toString();
+      _error += data.toString();
     });
     
     cargoProcess.on('close', (code) => {
@@ -385,7 +391,7 @@ async function runCargoTests(testFiles: string[], config: any): Promise<TestResu
   });
 }
 
-async function runJUnitTests(testFiles: string[], config: any): Promise<TestResult> {
+async function runJUnitTests(testFiles: string[], config: TesterConfig): Promise<TestResult> {
   logger.debug('Running JUnit tests');
   
   return new Promise((resolve, reject) => {
@@ -394,14 +400,14 @@ async function runJUnitTests(testFiles: string[], config: any): Promise<TestResu
     });
     
     let output = '';
-    let error = '';
+    let _error = '';
     
     javaProcess.stdout?.on('data', (data) => {
       output += data.toString();
     });
     
     javaProcess.stderr?.on('data', (data) => {
-      error += data.toString();
+      _error += data.toString();
     });
     
     javaProcess.on('close', (code) => {
@@ -420,7 +426,7 @@ async function runJUnitTests(testFiles: string[], config: any): Promise<TestResu
   });
 }
 
-async function runGenericTests(testFiles: string[], config: any): Promise<TestResult> {
+async function runGenericTests(testFiles: string[], config: TesterConfig): Promise<TestResult> {
   logger.debug('Running generic tests');
   
   // Fallback to basic test execution
@@ -453,7 +459,7 @@ async function runGenericTests(testFiles: string[], config: any): Promise<TestRe
   };
 }
 
-async function executeTestFile(testFile: string, config: any): Promise<{ passed: number; failed: number; errorMessages: string[] }> {
+async function executeTestFile(_testFile: string, _config: TesterConfig): Promise<{ passed: number; failed: number; errorMessages: string[] }> {
   // This is a simplified test execution
   // In a real implementation, this would properly execute the test file
   

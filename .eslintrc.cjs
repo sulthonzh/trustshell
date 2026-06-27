@@ -11,10 +11,10 @@ module.exports = {
   rules: {
     // Allow console for logger and CLI output
     'no-console': 'off',
-    // Downgrade unused vars to warnings (for future cleanup, not blocking)
-    '@typescript-eslint/no-unused-vars': 'warn',
+    // Allow unused vars prefixed with _ (intentional)
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
     'no-unused-vars': 'off',
-    // Allow any types where type inference isn't critical
+    // no-explicit-any kept as warning - cleaned up in source
     '@typescript-eslint/no-explicit-any': 'warn',
     // Downgrade prefer-const to warning
     'prefer-const': 'warn',

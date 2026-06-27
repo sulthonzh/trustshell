@@ -1,6 +1,12 @@
 import { readFileSync } from 'fs';
 import { logger } from '../utils/logger.js';
 
+
+interface SecurityScanConfig {
+  security?: { enabled: boolean };
+  [key: string]: unknown;
+}
+
 export interface SecurityConfig {
   enabled: boolean;
   threshold: number;
@@ -20,7 +26,7 @@ export interface SecurityResult {
 export async function checkSecurity(
   filePath: string, 
   language: string, 
-  config: any
+  config: SecurityScanConfig
 ): Promise<SecurityResult> {
   if (!config.security?.enabled) {
     return {
@@ -89,7 +95,7 @@ export async function checkSecurity(
 async function detectVulnerabilities(
   code: string, 
   language: string, 
-  config: any
+  _config: unknown
 ): Promise<Array<{
   type: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
@@ -131,7 +137,7 @@ async function detectVulnerabilities(
   return vulnerabilities;
 }
 
-async function checkJavaScriptSecurity(code: string, vulnerabilities: any[]): Promise<void> {
+async function checkJavaScriptSecurity(code: string, vulnerabilities: Array<{ type: string; severity: 'low' | 'medium' | 'high' | 'critical'; line?: number; description: string }>): Promise<void> {
   // Check for dangerous global variables
   const dangerousGlobals = [
     'eval', 'Function', 'setTimeout', 'setInterval', 'document',
@@ -259,7 +265,7 @@ async function checkJavaScriptSecurity(code: string, vulnerabilities: any[]): Pr
   }
 }
 
-async function checkPythonSecurity(code: string, vulnerabilities: any[]): Promise<void> {
+async function checkPythonSecurity(code: string, vulnerabilities: Array<{ type: string; severity: 'low' | 'medium' | 'high' | 'critical'; line?: number; description: string }>): Promise<void> {
   // Check for dangerous imports
   const dangerousImports = [
     'subprocess', 'os.system', 'eval', 'exec', 'compile',
@@ -357,7 +363,7 @@ async function checkPythonSecurity(code: string, vulnerabilities: any[]): Promis
   }
 }
 
-async function checkGoSecurity(code: string, vulnerabilities: any[]): Promise<void> {
+async function checkGoSecurity(code: string, vulnerabilities: Array<{ type: string; severity: 'low' | 'medium' | 'high' | 'critical'; line?: number; description: string }>): Promise<void> {
   // Check for dangerous function calls
   const dangerousFunctions = [
     'exec.Command', 'os/exec.Command', 'syscall.Exec', 'os.StartProcess',
@@ -408,7 +414,7 @@ async function checkGoSecurity(code: string, vulnerabilities: any[]): Promise<vo
   }
 }
 
-async function checkRustSecurity(code: string, vulnerabilities: any[]): Promise<void> {
+async function checkRustSecurity(code: string, vulnerabilities: Array<{ type: string; severity: 'low' | 'medium' | 'high' | 'critical'; line?: number; description: string }>): Promise<void> {
   // Check for unsafe code
   if (code.includes('unsafe')) {
     vulnerabilities.push({
@@ -450,7 +456,7 @@ async function checkRustSecurity(code: string, vulnerabilities: any[]): Promise<
   }
 }
 
-async function checkJavaSecurity(code: string, vulnerabilities: any[]): Promise<void> {
+async function checkJavaSecurity(code: string, vulnerabilities: Array<{ type: string; severity: 'low' | 'medium' | 'high' | 'critical'; line?: number; description: string }>): Promise<void> {
   // Check for dangerous methods
   const dangerousMethods = [
     'Runtime.exec', 'ProcessBuilder', 'Class.forName',
@@ -501,7 +507,7 @@ async function checkJavaSecurity(code: string, vulnerabilities: any[]): Promise<
   }
 }
 
-async function checkGenericSecurity(code: string, vulnerabilities: any[], language: string): Promise<void> {
+async function checkGenericSecurity(code: string, vulnerabilities: Array<{ type: string; severity: 'low' | 'medium' | 'high' | 'critical'; line?: number; description: string }>, _language: string): Promise<void> {
   // Generic security checks that apply to any language
   
   // Check for hardcoded secrets
@@ -559,7 +565,7 @@ async function checkGenericSecurity(code: string, vulnerabilities: any[], langua
   // Check for commented-out debug code
   if (code.includes('// TODO') || code.includes('// FIXME')) {
     const todoLines = lines.filter(line => line.includes('// TODO') || line.includes('// FIXME'));
-    todoLines.forEach((line, index) => {
+    todoLines.forEach((line, _index) => {
       const globalIndex = lines.indexOf(line);
       vulnerabilities.push({
         type: 'commented-code',
@@ -581,7 +587,7 @@ async function checkGenericSecurity(code: string, vulnerabilities: any[], langua
   }
 }
 
-async function checkCommonSecurityPatterns(code: string, vulnerabilities: any[]): Promise<void> {
+async function checkCommonSecurityPatterns(code: string, vulnerabilities: Array<{ type: string; severity: 'low' | 'medium' | 'high' | 'critical'; line?: number; description: string }>): Promise<void> {
   // Common security patterns across all languages
   
   // Check for hardcoded credentials in string literals

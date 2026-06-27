@@ -80,7 +80,7 @@ export function generateJsonReport(
   result: VerificationResult,
   config: ReportConfig = DEFAULT_REPORT_CONFIG
 ): string {
-  const report: any = {
+  const report: Record<string, unknown> = {
     status: result.status,
     confidenceScore: result.confidenceScore,
     findings: {
@@ -733,7 +733,7 @@ function escapeXml(text: string): string {
 }
 
 // Utility function to validate report output
-export function validateReportOutput(outputPath: string, format: string): boolean {
+export function validateReportOutput(outputPath: string, _format: string): boolean {
   // This would validate that the report was generated correctly
   // For now, just check if file exists
   return existsSync(outputPath);
@@ -756,7 +756,7 @@ export async function generateMultipleReports(
   // Generate each format
   for (const format of formats) {
     const outputPath = join(outputDir, `report.${format}`);
-    await generateReport(result, outputPath, { type: format as any }, config);
+    await generateReport(result, outputPath, { type: format as ReportFormat['type'] }, config);
   }
   
   logger.info(`Generated ${formats.length} report formats to: ${outputDir}`);

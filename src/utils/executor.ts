@@ -1,5 +1,5 @@
-import { spawn, ChildProcess } from 'child_process';
-import { writeFile, unlink } from 'fs/promises';
+import { spawn } from 'child_process';
+import { unlink } from 'fs/promises';
 import { join } from 'path';
 import { logger } from './logger.js';
 
@@ -61,7 +61,7 @@ export async function executeCode(
     });
 
     // Handle timeout
-    const timeoutId = setTimeout(() => {
+    const _timeoutId = setTimeout(() => {
       timedOut = true;
       childProcess.kill('SIGTERM');
       

@@ -1,6 +1,21 @@
 import { readFileSync } from 'fs';
-import { join } from 'path';
 import { logger } from '../utils/logger.js';
+
+
+
+interface AnalysisConfig {
+  language?: string;
+  testFrameworks?: string[];
+  security?: { enabled: boolean };
+  [key: string]: unknown;
+}
+
+interface QualityIssue {
+  type: string;
+  message: string;
+  severity: string;
+  line?: number;
+}
 
 export interface CodeQuality {
   score: number;
@@ -27,7 +42,7 @@ export interface AnalysisResult {
 export async function analyzeCode(
   filePath: string, 
   language: string, 
-  config: any
+  config: AnalysisConfig
 ): Promise<AnalysisResult> {
   logger.debug(`Analyzing code: ${filePath} (${language})`);
   
@@ -83,7 +98,7 @@ async function analyzeCodeQuality(code: string, language: string): Promise<CodeQ
       type: 'syntax',
       message: error instanceof Error ? error.message : String(error),
       severity: 'high',
-      line: (error as any).line || 1
+      line: (error instanceof Error && 'line' in error ? (error as { line: number }).line : 1) || 1
     });
     score = Math.max(0, score - 30);
   }
@@ -191,7 +206,7 @@ function checkBalancedBraces(code: string): boolean {
   return stack.length === 0;
 }
 
-function checkJavaScriptSyntax(code: string): string[] {
+function _checkJavaScriptSyntax(code: string): string[] {
   const issues: string[] = [];
   
   // Check for undefined variables
@@ -233,7 +248,7 @@ function checkPythonSyntax(code: string): string[] {
   return issues;
 }
 
-function checkTypeScriptSyntax(code: string): string[] {
+function _checkTypeScriptSyntax(code: string): string[] {
   const issues: string[] = [];
   
   // Check for functions without type annotations
@@ -259,7 +274,7 @@ function checkTypeScriptSyntax(code: string): string[] {
   return issues;
 }
 
-async function checkJavaScriptQuality(code: string, issues: any[]): Promise<void> {
+async function checkJavaScriptQuality(code: string, issues: QualityIssue[]): Promise<void> {
   // Check for common JavaScript anti-patterns
   if (code.includes('eval(')) {
     issues.push({
@@ -336,7 +351,7 @@ async function checkJavaScriptQuality(code: string, issues: any[]): Promise<void
   
   // Check for multiple const/let/var declarations on same line (bad style)
   const lines = code.split('\n');
-  lines.forEach((line, idx) => {
+  lines.forEach((line, _idx) => {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('//') || trimmed.startsWith('*')) {
       return;
@@ -356,12 +371,12 @@ async function checkJavaScriptQuality(code: string, issues: any[]): Promise<void
   });
 }
 
-async function checkTypeScriptQuality(code: string, issues: any[]): Promise<void> {
+async function checkTypeScriptQuality(code: string, issues: QualityIssue[]): Promise<void> {
   // Check for TypeScript-specific anti-patterns
   
   // Check for 'any' types
   const anyTypeMatches = code.match(/:\s*any\b/g) || [];
-  anyTypeMatches.forEach(match => {
+  anyTypeMatches.forEach(_match => {
     issues.push({
       type: 'style',
       message: 'Avoid using "any" type. Use specific types or unknown for better type safety.',
@@ -410,7 +425,7 @@ async function checkTypeScriptQuality(code: string, issues: any[]): Promise<void
   }
 }
 
-async function checkPythonQuality(code: string, issues: any[]): Promise<void> {
+async function checkPythonQuality(code: string, issues: QualityIssue[]): Promise<void> {
   // Check for common Python anti-patterns
   if (code.includes('import *')) {
     issues.push({
@@ -499,7 +514,7 @@ async function checkPythonQuality(code: string, issues: any[]): Promise<void> {
   });
 }
 
-async function checkGoQuality(code: string, issues: any[]): Promise<void> {
+async function checkGoQuality(code: string, issues: QualityIssue[]): Promise<void> {
   // Check for Go-specific patterns
   if (code.includes('var ') && !code.includes(':=') && code.includes('func')) {
     issues.push({
@@ -512,7 +527,7 @@ async function checkGoQuality(code: string, issues: any[]): Promise<void> {
   // Check for missing error handling (ignoring errors with _)
   const errorIgnoredRegex = /(?:\w+\s*,)?\s*_\s*,\s*\w+\s*:=|\w+\s*,\s*_\s*:=/g;
   const errorIgnoredMatches = code.match(errorIgnoredRegex) || [];
-  errorIgnoredMatches.forEach(match => {
+  errorIgnoredMatches.forEach(_match => {
     issues.push({
       type: 'logic',
       message: 'Error value is being ignored (_). Consider handling the error.',
@@ -555,7 +570,7 @@ async function checkGoQuality(code: string, issues: any[]): Promise<void> {
   });
 }
 
-async function checkRustQuality(code: string, issues: any[]): Promise<void> {
+async function checkRustQuality(code: string, issues: QualityIssue[]): Promise<void> {
   // Check for Rust-specific patterns
   if (code.includes('mut ') && !code.includes('let mut')) {
     issues.push({
@@ -566,7 +581,7 @@ async function checkRustQuality(code: string, issues: any[]): Promise<void> {
   }
 }
 
-async function checkJavaQuality(code: string, issues: any[]): Promise<void> {
+async function checkJavaQuality(code: string, issues: QualityIssue[]): Promise<void> {
   // Check for Java-specific patterns
   if (code.includes('System.out.println') && !code.includes('// DEBUG')) {
     issues.push({
@@ -577,7 +592,7 @@ async function checkJavaQuality(code: string, issues: any[]): Promise<void> {
   }
 }
 
-async function checkGenericQuality(code: string, issues: any[], language: string): Promise<void> {
+async function checkGenericQuality(code: string, issues: QualityIssue[], _language: string): Promise<void> {
   // Generic quality checks for any language
   const lineCount = code.split('\n').length;
   
@@ -593,7 +608,7 @@ async function checkGenericQuality(code: string, issues: any[], language: string
   const todoMatches = code.match(/TODO|FIXME|HACK/gi);
   if (todoMatches && todoMatches.length >= 1) {
     // Add an issue for each TODO/FIXME comment found
-    todoMatches.forEach((match, index) => {
+    todoMatches.forEach((match, _index) => {
       issues.push({
         type: 'style',
         message: `${match} comment found`,
@@ -608,7 +623,7 @@ async function generateFunctionalTests(code: string, language: string): Promise<
   // In a real implementation, this would use language-specific testing frameworks
   
   const tests: string[] = [];
-  let errorMessages: string[] = [];
+  const errorMessages: string[] = [];
   
   // Generate basic tests based on code analysis
   if (language === 'javascript' || language === 'typescript') {
@@ -636,7 +651,6 @@ async function generateFunctionalTests(code: string, language: string): Promise<
 function findUndefinedVariables(code: string): string[] {
   // This is a simplified implementation - checks for variables used before being defined
   // Note: This is a style check, not a syntax error
-  const undefinedVars: string[] = [];
   
   // Extract variable declarations
   const declaredVars = new Set<string>();
@@ -799,7 +813,7 @@ function checkPythonColons(code: string): string[] {
   return issues;
 }
 
-function findPythonGlobalVariables(code: string): string[] {
+function findPythonGlobalVariables(_code: string): string[] {
   const globals: string[] = [];
   // This is a simplified implementation
   return globals;

@@ -5,7 +5,7 @@ export enum LogLevel {
   ERROR = 3
 }
 
-function formatArg(arg: any): string {
+function formatArg(arg: unknown): string {
   if (arg === null) return 'null';
   if (arg === undefined) return 'undefined';
   if (arg instanceof Error) return arg.message;
@@ -27,27 +27,27 @@ export class Logger {
     this.isVerbose = verbose;
   }
 
-  debug(message: string, ...args: any[]): void {
+  debug(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.DEBUG) {
       const prefix = this.isVerbose ? '[DEBUG]' : '';
       process.stderr.write(`${prefix}${prefix ? ' ' : ''}${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }
   }
 
-  info(message: string, ...args: any[]): void {
+  info(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
       const prefix = this.isVerbose ? '[INFO]' : '';
       process.stderr.write(`${prefix}${prefix ? ' ' : ''}${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }
   }
 
-  warn(message: string, ...args: any[]): void {
+  warn(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.WARN) {
       process.stderr.write(`⚠️  ${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }
   }
 
-  error(message: string, ...args: any[]): void {
+  error(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.ERROR) {
       process.stderr.write(`❌ ${message}${args.length ? ' ' + args.map(formatArg).join(' ') : ''}\n`);
     }

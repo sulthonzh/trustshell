@@ -1,6 +1,6 @@
-import { readFileSync, existsSync } from 'fs';
-import { writeFile, readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import { join } from 'path';
+import { writeFile, readFile } from 'fs/promises';
 import { logger } from '../utils/logger.js';
 
 export interface TrustshellConfig {
@@ -306,7 +306,7 @@ export async function validateConfigFile(configPath: string): Promise<void> {
 }
 
 // Get configuration schema for validation
-export function getConfigSchema(): any {
+export function getConfigSchema(): Record<string, unknown> {
   return {
     type: 'object',
     properties: {
