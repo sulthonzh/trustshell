@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { analyzeCode } from '../dist/analyzer/analyzer.js';
-import { createTestFile, cleanupTestDir, createTestDir } from './setup.js';
+import { createTestFile, cleanupTestDir, createTestDir } from './setup.ts';
 
 describe('analyzer module', () => {
 

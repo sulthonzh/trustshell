@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { verifyCode } from '../dist/verifier/verifier.js';
-import { createTestFile, cleanupTestDir, createTestDir, SAMPLE_CONFIGS } from './setup.js';
+import { createTestFile, cleanupTestDir, createTestDir, SAMPLE_CONFIGS } from './setup.ts';
 
 describe('verifier module', () => {
   let testDir: string;

@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { checkSecurity } from '../dist/security/security.js';
-import { createTestFile, cleanupTestDir, createTestDir } from './setup.js';
+import { createTestFile, cleanupTestDir, createTestDir } from './setup.ts';
 
 describe('security module', () => {
 

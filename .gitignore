@@ -9,6 +9,9 @@ dist/
 .env.production.local
 coverage/
 *.tsbuildinfo
+test/*.js
+test/*.d.ts
+test/*.js.map
 .vscode/
 .idea/
 *.swp
