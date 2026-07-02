@@ -13,7 +13,7 @@
     "test": "npm run build && node --test test/*.test.ts",
     "test:coverage": "npm run build && c8 node --test test/*.test.ts",
     "test:watch": "npm run build && node --test --watch test/*.test.ts",
-    "lint": "eslint src --ext .ts",
+    "lint": "eslint src",
     "start": "node dist/index.js"
   },
   "keywords": [
@@ -33,10 +33,10 @@
   },
   "devDependencies": {
     "@types/node": "^24.13.2",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.62.1",
+    "@typescript-eslint/parser": "^8.62.1",
     "c8": "^11.0.0",
-    "eslint": "^8.0.0",
+    "eslint": "^9.39.4",
     "ts-node": "^10.9.0",
     "typescript": "^6.0.0"
   },

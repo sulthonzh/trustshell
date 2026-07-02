@@ -1,4 +1,5 @@
 import { spawn } from 'child_process';
+import { writeFileSync, chmodSync } from 'fs';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 import { logger } from './logger.js';
@@ -61,7 +62,7 @@ export async function executeCode(
     });
 
     // Handle timeout
-    const _timeoutId = setTimeout(() => {
+    setTimeout(() => {
       timedOut = true;
       childProcess.kill('SIGTERM');
       
@@ -289,15 +290,16 @@ console.log('Language ${language} not supported for execution');
   }
   
   // Write the script to temp file
-  require('fs').writeFileSync(scriptPath, scriptContent);
-  
+  writeFileSync(scriptPath, scriptContent);
+  chmodSync(scriptPath, 0o755);
+
   return scriptPath;
 }
 
 async function cleanupScript(scriptPath: string): Promise<void> {
   try {
     await unlink(scriptPath);
-  } catch (error) {
+  } catch (_error) {
     // Ignore cleanup errors
   }
 }

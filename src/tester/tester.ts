@@ -4,8 +4,9 @@ import { logger } from '../utils/logger.js';
 
 
 interface TesterConfig {
-  testFrameworks: string[];
+  testFrameworks?: string[];
   performance?: { maxExecutionTime?: number };
+  customTests?: string;
   [key: string]: unknown;
 }
 
@@ -28,6 +29,142 @@ export interface TestDetail {
   status: 'passed' | 'failed' | 'skipped';
   duration: number;
   error?: string;
+}
+
+// Custom test execution for user-provided test specs
+async function executeCustomTests(filePath: string, customTests: string): Promise<TestResult> {
+  logger.debug('Executing custom tests');
+  
+  const testDetails: TestDetail[] = [];
+  const errorMessages: string[] = [];
+  let passed = 0;
+  let failed = 0;
+  
+  // Read the source code
+  const code = readFileSync(filePath, 'utf8');
+  
+  // Parse jest-style test blocks: test('name', () => {...}), it('name', () => {...}), test.skip(...)
+  const skippedRegex = /(?:test|it)\.skip\s*\(\s*['"]([^'"]+)['"]/g;
+  
+  // First, collect all skipped tests
+  const tests: Array<{name: string; code: string; skipped: boolean}> = [];
+  let match: RegExpExecArray | null;
+  while ((match = skippedRegex.exec(customTests)) !== null) {
+    const name = match[1];
+    if (name) {
+      tests.push({ name, code: '', skipped: true });
+    }
+  }
+  
+  // Then, collect all non-skipped tests
+  const nonSkippedRegex = /(?:test|it)\s*\(\s*['"]([^'"]+)['"]\s*,\s*(?:async\s*)?\(\s*(?:[\w,\s]*)\s*\)\s*=>\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}\s*\)/gs;
+  while ((match = nonSkippedRegex.exec(customTests)) !== null) {
+    const name = match[1];
+    const code = match[2];
+    if (name && code) {
+      tests.push({ name, code: code.trim(), skipped: false });
+    }
+  }
+  
+  // Execute each test
+  for (const test of tests) {
+    const startTime = Date.now();
+    
+    if (test.skipped) {
+      testDetails.push({
+        name: test.name,
+        status: 'skipped',
+        duration: Date.now() - startTime
+      });
+      continue;
+    }
+    
+    try {
+      // Create a test execution environment
+      // We'll use eval to execute the test code with the source code in scope
+      const testExecutionCode = `
+        ${code}
+        
+        // Jest-like expect function
+        function expect(actual) {
+          return {
+            toBe: (expected) => {
+              if (actual !== expected) {
+                throw new Error(\`Expected \${expected} but received \${actual}\`);
+              }
+            },
+            toEqual: (expected) => {
+              if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                throw new Error(\`Expected \${expected} but received \${actual}\`);
+              }
+            },
+            toBeTruthy: () => {
+              if (!actual) {
+                throw new Error(\`Expected truthy value but received \${actual}\`);
+              }
+            },
+            toBeFalsy: () => {
+              if (actual) {
+                throw new Error(\`Expected falsy value but received \${actual}\`);
+              }
+            },
+            toBeGreaterThan: (expected) => {
+              if (actual <= expected) {
+                throw new Error(\`Expected value greater than \${expected} but received \${actual}\`);
+              }
+            },
+            toBeLessThan: (expected) => {
+              if (actual >= expected) {
+                throw new Error(\`Expected value less than \${expected} but received \${actual}\`);
+              }
+            },
+            toContain: (expected) => {
+              if (!String(actual).includes(String(expected))) {
+                throw new Error(\`Expected \${actual} to contain \${expected}\`);
+              }
+            }
+          };
+        }
+        
+        // Execute the test code
+        ${test.code}
+      `;
+      
+      // Evaluate the test
+      eval(testExecutionCode);
+      
+      // Test passed
+      testDetails.push({
+        name: test.name,
+        status: 'passed',
+        duration: Date.now() - startTime
+      });
+      passed++;
+      
+    } catch (error) {
+      // Test failed
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      testDetails.push({
+        name: test.name,
+        status: 'failed',
+        duration: Date.now() - startTime,
+        error: errorMsg
+      });
+      errorMessages.push(`${test.name}: ${errorMsg}`);
+      failed++;
+    }
+  }
+  
+  // Calculate coverage
+  const coverage = tests.length > 0 ? `${Math.floor((passed / tests.length) * 100)}%` : '0%';
+  
+  return {
+    passed,
+    failed,
+    coverage,
+    errorMessages,
+    details: testDetails
+  };
 }
 
 export async function runTests(
@@ -71,11 +208,11 @@ async function executeTests(
   
   if (testFiles.length === 0) {
     logger.warn('No test files found, generating basic tests');
-    return generateAndRunBasicTests(filePath, language);
+    return generateAndRunBasicTests(filePath, language, config);
   }
   
   // Determine testing framework based on language and configuration
-  const framework = config.testFrameworks[0] || getDefaultFramework(language);
+  const framework = config.testFrameworks?.[0] || getDefaultFramework(language);
   
   switch (framework) {
     case 'jest':
@@ -95,29 +232,22 @@ async function executeTests(
   }
 }
 
-function findTestFiles(sourceFile: string, language: string): string[] {
-  const testFiles: string[] = [];
-  const _path = require('path');
-  
-  // Common test file patterns
-  const _patterns = [
-    'test/**/*.' + language,
-    'tests/**/*.' + language,
-    '**/*.test.' + language,
-    '**/*.spec.' + language,
-    '**/*Test.' + language,
-    '**/*Spec.' + language
-  ];
-  
-  // For now, return empty array (would need actual file system scanning in real implementation)
-  return testFiles;
+function findTestFiles(_sourceFile: string, _language: string): string[] {
+  // Common test file patterns (would need actual file system scanning in real implementation)
+  return [];
 }
 
 async function generateAndRunBasicTests(
   filePath: string, 
-  language: string
+  language: string,
+  config: TesterConfig = {}
 ): Promise<TestResult> {
   logger.debug('Generating basic tests for code analysis');
+  
+  // If customTests are provided, execute them instead of static analysis
+  if (config.customTests && (language === 'javascript' || language === 'typescript')) {
+    return executeCustomTests(filePath, config.customTests);
+  }
   
   // Analyze the code to understand its structure
   const code = readFileSync(filePath, 'utf8');
@@ -141,11 +271,12 @@ async function generateAndRunBasicTests(
     passed++;
     
     // Test 2: Arrow function validation
+    const arrowError = arrowFunctionMatches && arrowFunctionMatches.length === 0 ? 'No arrow functions found' : undefined;
     testDetails.push({
       name: 'Arrow function validation', 
       status: arrowFunctionMatches && arrowFunctionMatches.length > 0 ? 'passed' : 'failed',
       duration: 1,
-      error: arrowFunctionMatches && arrowFunctionMatches.length === 0 ? 'No arrow functions found' : undefined as unknown as string
+      ...(arrowError && { error: arrowError })
     });
     
     if (arrowFunctionMatches && arrowFunctionMatches.length > 0) {
@@ -176,11 +307,12 @@ async function generateAndRunBasicTests(
     
     // Test 2: Function validation
     const functionMatches = code.match(/def\s+\w+\s*\([^)]*\):/g);
+    const functionError = functionMatches && functionMatches.length === 0 ? 'No functions found' : undefined;
     testDetails.push({
       name: 'Function definition validation',
       status: functionMatches && functionMatches.length > 0 ? 'passed' : 'failed',
       duration: 1,
-      error: functionMatches && functionMatches.length === 0 ? 'No functions found' : undefined as unknown as string
+      ...(functionError && { error: functionError })
     });
     
     if (functionMatches && functionMatches.length > 0) {
