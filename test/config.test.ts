@@ -450,7 +450,8 @@ describe('config file operations', () => {
     it('should validate a valid configuration file', async () => {
       const validConfig = DEFAULT_CONFIG;
       await saveConfig(validConfig, testConfigPath);
-      assert.doesNotThrow(async () => await validateConfigFile(testConfigPath));
+      // Directly await — assert.doesNotThrow doesn't work with async functions
+      await validateConfigFile(testConfigPath);
     });
 
     it('should throw error for invalid configuration file', async () => {
