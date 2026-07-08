@@ -42,5 +42,10 @@
   },
   "dependencies": {
     "commander": "^15.0.0"
-  }
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ]
 }
