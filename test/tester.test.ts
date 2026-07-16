@@ -561,4 +561,93 @@ test('add function', () => {
       teardown();
     });
   });
+
+  describe('output parsing functions', () => {
+    let outputTestDir: string;
+
+    const outputSetup = () => {
+      outputTestDir = createTestDir();
+    };
+
+    const outputTeardown = () => {
+      cleanupTestDir(outputTestDir);
+    };
+
+    it('should handle it() test format in custom tests', async () => {
+      outputSetup();
+      const code = 'function multiply(a, b) { return a * b; }';
+      const filePath = createTestFile(outputTestDir, 'test-it.js', code);
+      const customTests = `
+it('should multiply numbers', () => {
+  expect(multiply(2, 3)).toBe(6);
+});
+`;
+      const config = {
+        testFrameworks: ['jest'],
+        customTests: customTests,
+        files: [filePath]
+      };
+      const result = await runTests(filePath, 'javascript', config);
+      assert.strictEqual(typeof result.passed, 'number');
+      outputTeardown();
+    });
+
+    it('should handle async test functions', async () => {
+      outputSetup();
+      const code = 'async function fetchData() { return { id: 1, name: "test" }; }';
+      const filePath = createTestFile(outputTestDir, 'test-async.js', code);
+      const customTests = `
+test('async function', async () => {
+  const data = await fetchData();
+  expect(data.name).toBe("test");
+});
+`;
+      const config = {
+        testFrameworks: ['jest'],
+        customTests: customTests,
+        files: [filePath]
+      };
+      const result = await runTests(filePath, 'javascript', config);
+      assert.strictEqual(typeof result.passed, 'number');
+      outputTeardown();
+    });
+
+    it('should handle test.it() format in custom tests', async () => {
+      outputSetup();
+      const code = 'function divide(a, b) { return a / b; }';
+      const filePath = createTestFile(outputTestDir, 'test-it-method.js', code);
+      const customTests = `
+test.it('should divide numbers', () => {
+  expect(divide(6, 2)).toBe(3);
+});
+`;
+      const config = {
+        testFrameworks: ['jest'],
+        customTests: customTests,
+        files: [filePath]
+      };
+      const result = await runTests(filePath, 'javascript', config);
+      assert.strictEqual(typeof result.passed, 'number');
+      outputTeardown();
+    });
+
+    it('should handle test.skip() with it() format', async () => {
+      outputSetup();
+      const code = 'function subtract(a, b) { return a - b; }';
+      const filePath = createTestFile(outputTestDir, 'test-skip-it.js', code);
+      const customTests = `
+it.skip('skipped it test', () => {
+  expect(subtract(5, 2)).toBe(3);
+});
+`;
+      const config = {
+        testFrameworks: ['jest'],
+        customTests: customTests,
+        files: [filePath]
+      };
+      const result = await runTests(filePath, 'javascript', config);
+      assert.strictEqual(typeof result.passed, 'number');
+      outputTeardown();
+    });
+  });
 });
