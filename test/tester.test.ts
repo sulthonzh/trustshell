@@ -9,6 +9,7 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { runTests } from '../dist/tester/tester.js';
 import { createTestFile, cleanupTestDir, createTestDir } from './setup.ts';
+import { parsePytestOutput, parseGoTestOutput, parseCargoTestOutput, parseJUnitOutput, extractCoverageFromJestOutput, parseJestOutput, parseMochaOutput } from '../dist/tester/tester.js';
 
 describe('tester module', () => {
 
@@ -648,6 +649,267 @@ it.skip('skipped it test', () => {
       const result = await runTests(filePath, 'javascript', config);
       assert.strictEqual(typeof result.passed, 'number');
       outputTeardown();
+    });
+  });
+});
+
+describe('output parsing functions', () => {
+
+  describe('parsePytestOutput', () => {
+    it('should parse pytest output with passed and failed tests', () => {
+      const output = '12 passed, 3 failed in 1.23s';
+      const result = parsePytestOutput(output);
+      assert.strictEqual(result.passed, 12);
+      assert.strictEqual(result.failed, 3);
+      assert.strictEqual(result.coverage, '0%');
+      assert.deepStrictEqual(result.errorMessages, []);
+      assert.deepStrictEqual(result.details, []);
+    });
+
+    it('should parse pytest output with coverage', () => {
+      const output = `12 passed, 3 failed\n================== coverage: 75% ==================`
+      const result = parsePytestOutput(output);
+      assert.strictEqual(result.passed, 12);
+      assert.strictEqual(result.failed, 3);
+      assert.strictEqual(result.coverage, '75%');
+    });
+
+    it('should parse empty pytest output', () => {
+      const output = '';
+      const result = parsePytestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '0%');
+    });
+
+    it('should handle pytest output with only passed', () => {
+      const output = '5 passed';
+      const result = parsePytestOutput(output);
+      assert.strictEqual(result.passed, 5);
+      assert.strictEqual(result.failed, 0);
+    });
+
+    it('should handle pytest output with only failed', () => {
+      const output = '2 failed';
+      const result = parsePytestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 2);
+    });
+  });
+
+  describe('parseGoTestOutput', () => {
+    it('should parse Go test output with passed and failed tests', () => {
+      const output = `PASS:
+  testPackage
+  testSubPackage
+FAIL:
+  otherPackage`;
+      const result = parseGoTestOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 1);
+      assert.strictEqual(result.coverage, '0%');
+    });
+
+    it('should parse Go test output with coverage', () => {
+      const output = `PASS:
+  testPackage
+coverage: 85.4% of statements`;
+      const result = parseGoTestOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '85%');
+    });
+
+    it('should parse empty Go test output', () => {
+      const output = '';
+      const result = parseGoTestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '0%');
+    });
+
+    it('should handle Go test output with only passed', () => {
+      const output = 'PASS:';
+      const result = parseGoTestOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 0);
+    });
+
+    it('should handle Go test output with only failed', () => {
+      const output = 'FAIL:';
+      const result = parseGoTestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 1);
+    });
+  });
+
+  describe('parseCargoTestOutput', () => {
+    it('should parse Cargo test output with passed and failed tests', () => {
+      const output = 'test result: ok. 3 tests passed';
+      const result = parseCargoTestOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '0%');
+    });
+
+    it('should parse Cargo test output with failures', () => {
+      const output = 'test result: FAILED. 1 failed';
+      const result = parseCargoTestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 1);
+      assert.strictEqual(result.coverage, '0%');
+    });
+
+    it('should parse Cargo test output with coverage', () => {
+      const output = 'test result: ok. 5 passed (82.5% (102/123)))';
+      const result = parseCargoTestOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '82%');
+    });
+
+    it('should parse Cargo test output with both passed and coverage', () => {
+      const output = 'test result: ok. 5 passed (82.5% (102/123)))';
+      const result = parseCargoTestOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '82%');
+    });
+
+    it('should handle empty Cargo test output', () => {
+      const output = '';
+      const result = parseCargoTestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '0%');
+    });
+  });
+
+  describe('parseJUnitOutput', () => {
+    it('should parse JUnit output with tests found and failures', () => {
+      const output = '15 tests found, 2 failures';
+      const result = parseJUnitOutput(output);
+      assert.strictEqual(result.passed, 15);
+      assert.strictEqual(result.failed, 2);
+      assert.strictEqual(result.coverage, '0%');
+    });
+
+    it('should parse empty JUnit output', () => {
+      const output = '';
+      const result = parseJUnitOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '0%');
+    });
+
+    it('should handle JUnit output with only failures', () => {
+      const output = '5 failures';
+      const result = parseJUnitOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 5);
+    });
+
+    it('should handle JUnit output with only tests found', () => {
+      const output = '10 tests found';
+      const result = parseJUnitOutput(output);
+      assert.strictEqual(result.passed, 10);
+      assert.strictEqual(result.failed, 0);
+    });
+  });
+
+  describe('extractCoverageFromJestOutput', () => {
+    it('should extract coverage from Jest output', () => {
+      const output = 'Test Suites: 1 passed, 1 total\nTests:       5 passed, 1 total\nSnapshots:   0 total\nTime:        1.234s\nRan all test suites.\n\n     PASS   coverage/coverage-summary.json\n\n--|---------|----------|---------|---------|------------------------------------------\nFile            | % Stmts | % Branch | % Funcs | % Lines |\n--|---------|----------|---------|---------|------------------------------------------\nAll files       |   80.5  |    75.2 |   83.3  |   80.5  |\nsrc            |   80.5  |    75.2 |   83.3  |   80.5  |\n  index.ts      |   80.5  |    75.2 |   83.3  |   80.5  |\n--|---------|----------|---------|---------|------------------------------------------\n\nCoverage report for test suite\n';
+      const result = extractCoverageFromJestOutput(output);
+      assert.strictEqual(result, '80%');
+    });
+
+    it('should return 0% when no coverage found', () => {
+      const output = 'Test Suites: 1 passed, 1 total\nTests:       5 passed, 1 total';
+      const result = extractCoverageFromJestOutput(output);
+      assert.strictEqual(result, '0%');
+    });
+
+    it('should handle empty output', () => {
+      const output = '';
+      const result = extractCoverageFromJestOutput(output);
+      assert.strictEqual(result, '0%');
+    });
+
+    it('should extract coverage from different decimal formats', () => {
+      const output = 'All files       |   85.75  |    75.2 |';
+      const result = extractCoverageFromJestOutput(output);
+      assert.strictEqual(result, '85%');
+    });
+
+    it('should handle coverage with multiple decimals', () => {
+      const output = 'All files       |   88.345  |    75.2 |';
+      const result = extractCoverageFromJestOutput(output);
+      assert.strictEqual(result, '88%');
+    });
+  });
+
+  describe('parseJestOutput', () => {
+    it('should parse passed tests from Jest output', () => {
+      const output = 'PASS src/utils.test.js\nPASS src/main.test.js\nTests: 5 passed';
+      const result = parseJestOutput(output);
+      assert.strictEqual(result.passed, 2);
+      assert.strictEqual(result.failed, 0);
+    });
+
+    it('should parse failed tests from Jest output', () => {
+      const output = 'FAIL src/utils.test.js\nError: Expected 5 but got 3';
+      const result = parseJestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 1);
+      assert.ok(result.errorMessages.length > 0);
+    });
+
+    it('should handle mixed pass/fail Jest output', () => {
+      const output = 'PASS src/a.test.js\nFAIL src/b.test.js\nError: timeout';
+      const result = parseJestOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 1);
+      assert.ok(result.errorMessages.length > 0);
+    });
+
+    it('should handle empty Jest output', () => {
+      const output = '';
+      const result = parseJestOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '0%');
+    });
+  });
+
+  describe('parseMochaOutput', () => {
+    it('should parse passed tests from Mocha output', () => {
+      const output = '✓ should do something\n✓ should do another thing';
+      const result = parseMochaOutput(output);
+      assert.strictEqual(result.passed, 2);
+      assert.strictEqual(result.failed, 0);
+    });
+
+    it('should parse failed tests from Mocha output', () => {
+      const output = '✗ should fail\n✗ another failure';
+      const result = parseMochaOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 2);
+    });
+
+    it('should handle mixed Mocha output', () => {
+      const output = '✓ test 1\n✗ test 2';
+      const result = parseMochaOutput(output);
+      assert.strictEqual(result.passed, 1);
+      assert.strictEqual(result.failed, 1);
+    });
+
+    it('should handle empty Mocha output', () => {
+      const output = '';
+      const result = parseMochaOutput(output);
+      assert.strictEqual(result.passed, 0);
+      assert.strictEqual(result.failed, 0);
+      assert.strictEqual(result.coverage, '0%');
     });
   });
 });

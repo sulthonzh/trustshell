@@ -398,5 +398,91 @@ document.getElementById('x').innerHTML = userInput;
       assert(result.vulnerabilities.length >= 2);
       teardown();
     });
+
+    it('should detect insecure logging of passwords', async () => {
+      setup();
+      const code = `
+const input = getUserInput();
+console.log('password:', password);
+`;
+      const filePath = createTestFile(testDir, 'insecure-log.js', code);
+      const config = {
+        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss', 'no-hardcoded-secrets'] }
+      };
+      const result = await checkSecurity(filePath, 'javascript', config);
+      const vuln = result.vulnerabilities.find(v => v.type === 'insecure-logging');
+      assert.ok(vuln, 'Should detect insecure logging');
+      assert.strictEqual(vuln!.severity, 'high');
+      teardown();
+    });
+
+    it('should detect missing error handling (try without catch)', async () => {
+      setup();
+      const code = `
+const input = processData();
+try {
+  doSomething();
+}
+`;
+      const filePath = createTestFile(testDir, 'no-catch.js', code);
+      const config = {
+        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss'] }
+      };
+      const result = await checkSecurity(filePath, 'javascript', config);
+      const vuln = result.vulnerabilities.find(v => v.type === 'error-handling');
+      assert.ok(vuln, 'Should detect missing catch');
+      teardown();
+    });
+
+    it('should detect timing attack vulnerability', async () => {
+      setup();
+      const code = `
+const input = password;
+if (password == userInputPassword) {
+  grantAccess();
+}
+`;
+      const filePath = createTestFile(testDir, 'timing.js', code);
+      const config = {
+        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss', 'no-hardcoded-secrets'] }
+      };
+      const result = await checkSecurity(filePath, 'javascript', config);
+      const vuln = result.vulnerabilities.find(v => v.type === 'timing-attack');
+      assert.ok(vuln, 'Should detect timing attack');
+      teardown();
+    });
+
+    it('should detect missing input validation', async () => {
+      setup();
+      const code = `
+function process(input) {
+  return input.toUpperCase();
+}
+`;
+      const filePath = createTestFile(testDir, 'no-validate.js', code);
+      const config = {
+        security: { enabled: true, threshold: 80, rules: ['no-eval', 'no-xss'] }
+      };
+      const result = await checkSecurity(filePath, 'javascript', config);
+      const vuln = result.vulnerabilities.find(v => v.type === 'input-validation');
+      assert.ok(vuln, 'Should detect missing input validation');
+      teardown();
+    });
+
+    it('should detect hardcoded credentials via line pattern', async () => {
+      setup();
+      const code = `
+const apiKey = 'sk-test-1234567890abcdef';
+const secret = 'supersecretvalue123';
+`;
+      const filePath = createTestFile(testDir, 'hardcoded.js', code);
+      const config = {
+        security: { enabled: true, threshold: 80, rules: ['no-hardcoded-secrets'] }
+      };
+      const result = await checkSecurity(filePath, 'javascript', config);
+      const credVulns = result.vulnerabilities.filter(v => v.type === 'hardcoded-credential');
+      assert.ok(credVulns.length >= 1, 'Should detect hardcoded credentials');
+      teardown();
+    });
   });
 });

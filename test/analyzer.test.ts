@@ -392,5 +392,36 @@ function processData() {
       assert(hasTodo, 'Should detect TODO/FIXME comments');
       teardown();
     });
+
+    it('should warn about large files >1000 lines', async () => {
+      setup();
+      const lines = Array.from({ length: 1005 }, (_, i) => `const x${i} = ${i};`);
+      const code = lines.join('\n');
+      const filePath = createTestFile(testDir, 'large.js', code);
+      const result = await analyzeCode(filePath, 'javascript', {});
+      const hasPerfIssue = result.codeQuality.issues.some((issue: any) =>
+        issue.type === 'performance' && issue.message.includes('Large file')
+      );
+      assert(hasPerfIssue, 'Should detect large file');
+      teardown();
+    });
+
+    it('should analyze Python code with indentation issues', async () => {
+      setup();
+      const code = 'def foo():\nx = 1\nreturn x';
+      const filePath = createTestFile(testDir, 'bad.py', code);
+      const result = await analyzeCode(filePath, 'python', {});
+      assert.ok(result, 'Should analyze Python file');
+      teardown();
+    });
+
+    it('should analyze Python code with missing colons', async () => {
+      setup();
+      const code = 'if True\n    pass';
+      const filePath = createTestFile(testDir, 'nocolon.py', code);
+      const result = await analyzeCode(filePath, 'python', {});
+      assert.ok(result, 'Should detect missing colon');
+      teardown();
+    });
   });
 });

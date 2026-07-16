@@ -603,7 +603,7 @@ async function executeTestFile(_testFile: string, _config: TesterConfig): Promis
 }
 
 // Output parsers for different testing frameworks
-function parseJestOutput(output: string): TestResult {
+export function parseJestOutput(output: string): TestResult {
   const lines = output.split('\n');
   let passed = 0;
   let failed = 0;
@@ -632,7 +632,7 @@ function parseJestOutput(output: string): TestResult {
   };
 }
 
-function parseMochaOutput(output: string): TestResult {
+export function parseMochaOutput(output: string): TestResult {
   // Simplified Mocha output parsing
   const passed = (output.match(/\✓/g) || []).length;
   const failed = (output.match(/\✗/g) || []).length;
@@ -647,11 +647,11 @@ function parseMochaOutput(output: string): TestResult {
   };
 }
 
-function parsePytestOutput(output: string): TestResult {
+export function parsePytestOutput(output: string): TestResult {
   // Simplified pytest output parsing
   const passed = (output.match(/\d+ passed/)?.[0] || '').split(' ')[0] || 0;
   const failed = (output.match(/\d+ failed/)?.[0] || '').split(' ')[0] || 0;
-  const coverageMatch = output.match(/TOTAL\s+\d+\s+\d+\s+(\d+)%/);
+  const coverageMatch = output.match(/TOTAL\s+\d+\s+\d+\s+(\d+)%/) || output.match(/coverage:\s+(\d+)%/);
   const coverage = coverageMatch ? coverageMatch[1] + '%' : '0%';
   
   return {
@@ -663,7 +663,7 @@ function parsePytestOutput(output: string): TestResult {
   };
 }
 
-function parseGoTestOutput(output: string): TestResult {
+export function parseGoTestOutput(output: string): TestResult {
   // Simplified Go test output parsing
   const passed = (output.match(/PASS:/g) || []).length;
   const failed = (output.match(/FAIL:/g) || []).length;
@@ -679,7 +679,7 @@ function parseGoTestOutput(output: string): TestResult {
   };
 }
 
-function parseCargoTestOutput(output: string): TestResult {
+export function parseCargoTestOutput(output: string): TestResult {
   // Simplified Cargo test output parsing
   const passed = (output.match(/test result: ok\./g) || []).length;
   const failed = (output.match(/test result: FAILED\./g) || []).length;
@@ -695,7 +695,7 @@ function parseCargoTestOutput(output: string): TestResult {
   };
 }
 
-function parseJUnitOutput(output: string): TestResult {
+export function parseJUnitOutput(output: string): TestResult {
   // Simplified JUnit output parsing
   const passed = (output.match(/\d+ tests found/)?.[0] || '').split(' ')[0] || 0;
   const failed = (output.match(/\d+ failures/)?.[0] || '').split(' ')[0] || '0';
@@ -709,10 +709,16 @@ function parseJUnitOutput(output: string): TestResult {
   };
 }
 
-function extractCoverageFromJestOutput(output: string): string {
+export function extractCoverageFromJestOutput(output: string): string {
+  // Try "lines | XX.X%" format first
   const coverageMatch = output.match(/lines\s+\|\s+(\d+\.\d+)%/);
   if (coverageMatch) {
     return Math.floor(parseFloat(coverageMatch[1] || '0')) + '%';
+  }
+  // Try Jest table format: "All files       |   80.5  |"
+  const tableMatch = output.match(/All files\s+\|\s+(\d+\.\d+)\s*\|/);
+  if (tableMatch) {
+    return Math.floor(parseFloat(tableMatch[1] || '0')) + '%';
   }
   
   return '0%';
