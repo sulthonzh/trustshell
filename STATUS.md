@@ -4,7 +4,7 @@
 2026-06-27
 
 ## Re-Audited
-2026-07-16 (test fix)
+2026-07-18 (coverage gap tests)
 
 ## Current Version
 1.0.1
@@ -26,14 +26,14 @@
 ### Issues Fixed (2026-07-16)
 1. **Test scope issue** — 'output parsing functions' describe block tried to call setup()/teardown() from outer scope → added local outputSetup()/outputTeardown() within the describe block (4 tests: it() format, async functions, test.it() format, test.skip() with it())
 
-### Exceptional Checklist (10/13 met)
+### Exceptional Checklist (12/13 met)
 
 | Criterion | Status | Notes |
 |-----------|--------|-------|
 | README hook in first 3 lines | ✅ PASS | "Don't trust, verify. 271 tests, 100% pass rate." |
 | Quick start works in <2 minutes | ✅ PASS | Build + test verified, CLI functional |
-| All tests GREEN (100% pass rate) | ✅ PASS | 271/271 tests, 0 failures (was 4 failing, fixed scope issue in tester.test.ts) |
-| Test coverage >= 80% on core logic | ✅ PASS | 80.01% stmts, 77.23% branches, 82.02% funcs. Coverage improved from 72.09%→80.01% via executor tests (+9), parser tests (+8), security pattern tests (+5), analyzer tests (+3). |
+| All tests GREEN (100% pass rate) | ✅ PASS | 367/367 tests, 0 failures |
+| Test coverage >= 80% on core logic | ✅ PASS | 84.51% stmts, 80.61% branches, 84.26% funcs. security.ts 86.72% stmts (was 70.79%), reporter.ts 98.55% stmts, config.ts 97.83% stmts. |
 | Zero TypeScript errors | ✅ PASS | tsc clean, strict mode enabled |
 | Zero ESLint warnings | ⚠️ 66 WARN | All `no-explicit-any` — cosmetic, pre-existing |
 | No TODO/FIXME comments in shipped code | ✅ PASS | Last real TODO implemented |
@@ -44,9 +44,9 @@
 | Performance (no O(n²) loops) | ✅ PASS | Linear scans, no nested loops |
 | Security (no hardcoded secrets) | ✅ PASS | No secrets, input validation present |
 
-### Remaining Work to EXCEPTIONAL
-1. Improve core logic coverage from 72.09% to 80% (target ~+100 tests for uncovered branches in tester.ts, executor.ts, security.ts, analyzer.ts)
-2. Add comparison table vs alternatives (CodeQL, SonarQube, AI-specific tools)
+### Remaining Work
+1. tester.ts coverage (61.24% stmts) — requires actual test runners (jest, mocha, pytest, cargo, etc.) installed for integration testing
+2. ESLint `no-explicit-any` warnings (cosmetic)
 
 ### Issues Fixed (2026-07-16 Cycle 2)
 1. **Syntax errors in tester.test.ts** — Multi-line single-quoted strings (pytest/Go test output) caused `ERR_INVALID_TYPESCRIPT_SYNTAX`. Converted to template literals.
