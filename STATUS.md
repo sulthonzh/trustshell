@@ -4,7 +4,7 @@
 2026-06-27
 
 ## Re-Audited
-2026-07-30 (coverage gap tests round 5)
+2026-07-31 (coverage gap tests round 6)
 
 ## Current Version
 1.0.1
@@ -30,10 +30,10 @@
 
 | Criterion | Status | Notes |
 |-----------|--------|-------|
-| README hook in first 3 lines | ✅ PASS | "Don't trust, verify. 477 tests, 100% pass rate." |
+| README hook in first 3 lines | ✅ PASS | "Don't trust, verify. 521 tests, 100% pass rate." |
 | Quick start works in <2 minutes | ✅ PASS | Build + test verified, CLI functional |
-| All tests GREEN (100% pass rate) | ✅ PASS | 495/495 tests, 0 failures |
-| Test coverage >= 80% on core logic | ✅ PASS | 87.24% stmts, 85.92% branches (586/682), 85.39% funcs. Logger verbose prefixes + formatArg circular object paths covered. |
+| All tests GREEN (100% pass rate) | ✅ PASS | 521/521 tests, 0 failures |
+| Test coverage >= 80% on core logic | ✅ PASS | 87.64% stmts, 87.21% branches. reporter.ts 100% stmts. config.ts 99.45% stmts. |
 | Zero TypeScript errors | ✅ PASS | tsc clean, strict mode enabled |
 | Zero ESLint warnings | ⚠️ 66 WARN | All `no-explicit-any` — cosmetic, pre-existing |
 | No TODO/FIXME comments in shipped code | ✅ PASS | Last real TODO implemented |
@@ -56,6 +56,12 @@
 1. **Logger coverage gaps** — Added 18 targeted tests in `test/coverage-gaps-8.test.ts` covering: verbose mode [INFO]/[DEBUG] prefix branches, non-verbose prefix suppression, formatArg circular object (JSON.stringify catch path → String fallback), formatArg edge cases (null, undefined, Error, object, primitive), warn/error with args, debug no-args verbose path.
 2. **Coverage improved** — Branches: 85.10%→**85.92%** (+0.82%, 577→586 covered). Tests: 477→**495** (+18), all GREEN ✅.
 
+### Issues Fixed (2026-07-31 Cycle 6)
+1. **reporter.ts emoji helper branch gaps** — Added 26 targeted tests in `test/coverage-gaps-9.test.ts`: all `getStatusEmoji` branches (default ❓), all `getConfidenceEmoji` ranges (🟢/🟡/🟠/🔴), all `getScoreEmoji` ranges (🌟/👍/👌/👎), all `getSecurityScoreEmoji` ranges (🔒/🔐/🔓/💀), all `getSeverityEmoji` branches (critical/medium/low/default), all `getSecuritySeverityEmoji` branches (CRITICAL/HIGH/MEDIUM/LOW/default).
+2. **config.ts default config file error path** — Covered the `existsSync` + `try/catch` path when `trustshell.config.js` exists in cwd but is unparseable (falls back to defaults with warning).
+3. **index.ts CLI commands** — Covered `config` command (generates config file to `-o` path and default `trustshell.config.js`) and `demo` command (runs demo verification).
+4. **Coverage improved** — reporter.ts: stmts 98.55%→**100%**, branches 85.18%→**93.33%** (+8.15pp). config.ts: stmts 97.83%→**99.45%**. Tests: 495→**521** (+26), all GREEN ✅.
+
 ### Test History
 
 | Date | Tests | Added | Stmts% | Branches% | Notes |
@@ -65,6 +71,7 @@
 | 2026-07-19 | 434 | +21 | 85.96% | 84.31% | Cycle 3: security.ts gaps |
 | 2026-07-23 | 477 | +43 | 87.24% | 85.10% | Cycle 4: tester/verifier gaps |
 | 2026-07-30 | 495 | +18 | 87.24% | 85.92% | Cycle 5: logger verbose/formatArg |
+| 2026-07-31 | 521 | +26 | 87.64% | 87.21% | Cycle 6: reporter emoji helpers, config error path, CLI commands |
 
 ### Remaining Work
 tester.ts stmts (63.03%) — the remaining gap is in spawn-based framework runners (runJestTests, runMochaTests, runPytestTests, runGoTests, runCargoTests, runJUnitTests) which are unreachable because findTestFiles() is a stub returning []. This is an architectural issue requiring either spawn mocking or findTestFiles implementation.
