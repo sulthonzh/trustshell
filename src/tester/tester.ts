@@ -56,13 +56,26 @@ async function executeCustomTests(filePath: string, customTests: string): Promis
     }
   }
   
-  // Then, collect all non-skipped tests
-  const nonSkippedRegex = /(?:test|it)\s*\(\s*['"]([^'"]+)['"]\s*,\s*(?:async\s*)?\(\s*(?:[\w,\s]*)\s*\)\s*=>\s*\{([^}]+(?:\{[^}]*\}[^}]*)*)\}\s*\)/gs;
-  while ((match = nonSkippedRegex.exec(customTests)) !== null) {
-    const name = match[1];
-    const code = match[2];
-    if (name && code) {
+  // Then, collect all non-skipped tests using a balanced-brace parser
+  // (regex can't handle arbitrary nesting depth — test bodies can contain
+  // objects like expect(o).toEqual({a:{b:1}}) which break regex-based matching)
+  const testStartRegex = /(?:test|it)\s*\(\s*['"]([^'"]+)['"]\s*,\s*(?:async\s*)?\(\s*(?:[\w,\s]*)\s*\)\s*=>\s*\{/gs;
+  let testMatch: RegExpExecArray | null;
+  while ((testMatch = testStartRegex.exec(customTests)) !== null) {
+    const name = testMatch[1];
+    // Find the matching closing brace by counting nesting depth
+    const bodyStart = testStartRegex.lastIndex; // position right after the opening {
+    let depth = 1;
+    let i = bodyStart;
+    for (; i < customTests.length; i++) {
+      if (customTests[i] === '{') depth++;
+      else if (customTests[i] === '}') { depth--; if (depth === 0) break; }
+    }
+    if (depth === 0 && name) {
+      const code = customTests.slice(bodyStart, i);
       tests.push({ name, code: code.trim(), skipped: false });
+      // Advance past the closing `})`
+      testStartRegex.lastIndex = i + 2;
     }
   }
   

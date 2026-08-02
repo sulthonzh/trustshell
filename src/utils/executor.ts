@@ -1,8 +1,14 @@
-import { spawn } from 'child_process';
+import { createRequire } from 'module';
 import { writeFileSync, chmodSync } from 'fs';
 import { unlink } from 'fs/promises';
 import { join } from 'path';
 import { logger } from './logger.js';
+
+// Use createRequire for child_process so test mocks can monkey-patch spawn.
+// ESM `import { spawn } from 'child_process'` creates a frozen binding that
+// cannot be overridden in tests (TypeError: Cannot assign to read only property).
+const _require = createRequire(import.meta.url);
+const child_process = _require('child_process') as typeof import('child_process');
 
 export interface ExecutionOptions {
   timeout: number;
@@ -26,7 +32,7 @@ export async function executeCode(
     // Create execution script based on language
     const scriptPath = createExecutionScript(filePath, language);
     
-    const childProcess = spawn(scriptPath, [], {
+    const childProcess = child_process.spawn(scriptPath, [], {
       cwd: options.cwd || process.cwd(),
       env: { ...process.env, ...options.env },
       timeout: options.timeout
