@@ -1,8 +1,8 @@
 # trustshell - Audit Status
 
 ## Last Audited
-2026-08-10 (UTC 2026-08-09 20:24) — 551/551 tests GREEN (21.1s)
-Prior: 2026-08-09 (UTC 2026-08-09 02:50)
+2026-08-11 (UTC 2026-08-11 14:41) — 548/548 tests GREEN ✅, TSC clean ✅. FF-merged typescript-eslint v8.67.0 (#24).
+Prior: 2026-08-10 (UTC 2026-08-09 20:24) — 551/551 tests GREEN (21.1s)
 
 
 ## Status
