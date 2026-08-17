@@ -17,7 +17,8 @@ test/*.js.map
 *.swp
 *.swo
 *~
-.nyc_outputbuild/
+.nyc_output/
+build/
 __pycache__/
 .venv/
 *.egg-info/
